@@ -1,69 +1,74 @@
+# Scrape Job Tracker API
+
+A FastAPI backend project for submitting URLs, scraping basic page data, storing scrape jobs, and returning structured results.
+
+This project is part of my backend learning portfolio. The goal is to build a practical API that combines Python backend development with web scraping, databases, testing, Docker, CI/CD, and cloud-ready infrastructure.
+
 ## Live Demo
 
 API: https://scrape-job-tracker-api.onrender.com
 
 Swagger docs: https://scrape-job-tracker-api.onrender.com/docs
 
-Health check: https://scrape-job-tracker-api.onrender.com/health/db
+Database health check: https://scrape-job-tracker-api.onrender.com/health/db
 
-# Scrape Job Tracker API
-
-A FastAPI backend project for submitting URLs, scraping basic page data, storing scrape jobs, and returning structured results.
-
-This project is part of my backend learning portfolio. The goal is to build a practical API that combines Python backend development with web scraping, databases, testing, Docker, CI, and cloud-ready infrastructure.
+> Note: this project is deployed on a free Render instance, so the first request after inactivity may take some time to wake up.
 
 ## Current Features
 
-* FastAPI application
-* Health check endpoint
-* Database health check endpoint
-* URL preview scraping endpoint
-* Database-backed scrape job endpoints
-* SQLite support for local development
-* PostgreSQL support through Docker Compose
-* SQLAlchemy database models
-* HTML parsing service
-* External page fetching service
-* Extracts:
-
-  * page title
-  * first H1 heading
-  * meta description
-  * number of links
-* Saved scrape job status:
-
-  * pending
-  * success
-  * failed
-* Job listing with:
-
-  * pagination metadata
-  * limit / offset
-  * status filtering
-* Swagger/OpenAPI documentation
-* Automated tests with pytest
-* Ruff linting and formatting checks
-* GitHub Actions CI
-* Dockerfile
-* Docker Compose setup with API + PostgreSQL
-* Makefile for common development commands
+- FastAPI application
+- Health check endpoint
+- Database health check endpoint
+- URL preview scraping endpoint
+- Database-backed scrape job endpoints
+- SQLite support for local development
+- PostgreSQL support through Docker Compose and Render
+- SQLAlchemy database models
+- Alembic database migrations
+- Environment-based fetch configuration
+- HTML parsing service
+- External page fetching service
+- Extracts:
+  - page title
+  - first H1 heading
+  - meta description
+  - number of links
+- Saved scrape job status:
+  - pending
+  - success
+  - failed
+- Job listing with:
+  - pagination metadata
+  - limit / offset
+  - status filtering
+- Swagger/OpenAPI documentation
+- Automated tests with pytest
+- Ruff linting and formatting checks
+- GitHub Actions CI
+- Dockerfile
+- Docker Compose setup with API + PostgreSQL
+- Makefile for common development commands
+- Smoke test script for checking a real running API
+- Production deployment on Render
 
 ## Tech Stack
 
-* Python
-* FastAPI
-* Pydantic
-* SQLAlchemy
-* SQLite
-* PostgreSQL
-* HTTPX
-* BeautifulSoup
-* Pytest
-* Ruff
-* Docker
-* Docker Compose
-* GitHub Actions
-* Make
+- Python
+- FastAPI
+- Pydantic
+- SQLAlchemy
+- Alembic
+- SQLite
+- PostgreSQL
+- HTTPX
+- BeautifulSoup
+- Pytest
+- Ruff
+- Docker
+- Docker Compose
+- GitHub Actions
+- Render
+- Make
 
 ## API Endpoints
 
@@ -74,6 +79,18 @@ GET /
 ```
 
 Returns basic API information.
+
+Example response:
+
+```json
+{
+  "name": "Scrape Job Tracker API",
+  "version": "0.2.0",
+  "status": "ok",
+  "docs": "/docs",
+  "health": "/health"
+}
+```
 
 ### Health Check
 
@@ -242,6 +259,26 @@ If the job does not exist, the API returns:
 }
 ```
 
+## Environment Configuration
+
+The app can be configured with environment variables.
+
+```text
+DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/scrape_jobs
+FETCH_TIMEOUT_SECONDS=10
+USER_AGENT=ScrapeJobTrackerBot/0.1
+```
+
+`DATABASE_URL` supports SQLite for local development and PostgreSQL for Docker/Render.
+
+Render may provide PostgreSQL URLs in this format:
+
+```text
+postgresql://...
+```
+
+The app normalizes that URL internally to use the installed `psycopg` driver.
+
 ## Running Locally
 
 ### 1. Create and activate virtual environment
@@ -257,7 +294,31 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Run the API locally
+Or:
+
+```bash
+make install
+```
+
+### 3. Run database migrations
+
+```bash
+make migrate
+```
+
+By default, the app uses a local SQLite database:
+
+```text
+scrape_jobs.db
+```
+
+### 4. Run the API locally
+
+```bash
+make run
+```
+
+Or:
 
 ```bash
 uvicorn app.main:app --reload
@@ -269,12 +330,6 @@ Open Swagger docs:
 http://localhost:8000/docs
 ```
 
-By default, the app uses a local SQLite database:
-
-```text
-scrape_jobs.db
-```
-
 ## Running with Docker Compose
 
 Build and start the API with PostgreSQL:
@@ -283,10 +338,18 @@ Build and start the API with PostgreSQL:
 docker compose up --build
 ```
 
+Or:
+
+```bash
+make docker-up
+```
+
 This starts:
 
-* `api` — FastAPI application
-* `db` — PostgreSQL database
+- `api` — FastAPI application
+- `db` — PostgreSQL database
+
+The API container runs Alembic migrations before starting the FastAPI server.
 
 Open Swagger docs:
 
@@ -321,21 +384,27 @@ docker compose up --build -d
 Stop detached containers:
 
 ```bash
+make docker-down
+```
+
+Or:
+
+```bash
 docker compose down
 ```
 
 ## Makefile Commands
 
-Run database migrations:
-
-```bash
-make migrate
-```
-
 Install dependencies:
 
 ```bash
 make install
+```
+
+Run database migrations:
+
+```bash
+make migrate
 ```
 
 Run tests:
@@ -374,6 +443,12 @@ Run the API locally:
 make run
 ```
 
+Run smoke test against a running API:
+
+```bash
+make smoke
+```
+
 Run with Docker Compose:
 
 ```bash
@@ -407,10 +482,42 @@ make test
 Current expected result:
 
 ```text
-15 passed
+21 passed
 ```
 
 The tests use an isolated in-memory SQLite database and mocked HTML fetching, so they do not depend on the real internet.
+
+## Smoke Test
+
+A smoke test script is included to check the real running API over HTTP.
+
+Start the API first:
+
+```bash
+make run
+```
+
+Then, in another terminal:
+
+```bash
+make smoke
+```
+
+The smoke test checks:
+
+- root endpoint
+- API health
+- database health
+- scrape preview
+- create scrape job
+- list scrape jobs
+- get scrape job by ID
+
+To run the smoke test against the deployed Render service:
+
+```bash
+BASE_URL=https://scrape-job-tracker-api.onrender.com make smoke
+```
 
 ## Code Quality
 
@@ -422,9 +529,9 @@ make check
 
 This runs:
 
-* Ruff linting
-* Ruff formatting check
-* pytest test suite
+- Ruff linting
+- Ruff formatting check
+- pytest test suite
 
 Run Ruff linting manually:
 
@@ -450,10 +557,30 @@ This project uses GitHub Actions.
 
 On every push and pull request to `main`, CI runs:
 
-* dependency installation
-* Ruff linting
-* Ruff formatting check
-* pytest test suite
+- dependency installation
+- Ruff linting
+- Ruff formatting check
+- pytest test suite
+
+## Deployment
+
+The project is deployed on Render using Docker.
+
+Production setup:
+
+- Render Web Service
+- Render PostgreSQL database
+- Dockerfile-based deployment
+- Alembic migrations run before app startup
+- `/health/db` used as the health check endpoint
+
+Live endpoints:
+
+```text
+https://scrape-job-tracker-api.onrender.com
+https://scrape-job-tracker-api.onrender.com/docs
+https://scrape-job-tracker-api.onrender.com/health/db
+```
 
 ## Project Status
 
@@ -461,52 +588,60 @@ This project is in MVP stage.
 
 Current version includes:
 
-* working scrape preview endpoint
-* database-backed scrape job endpoints
-* parser service
-* fetcher service
-* SQLite local development setup
-* Docker Compose PostgreSQL setup
-* API health check
-* database health check
-* pagination metadata for job listing
-* job status filtering
-* automated test suite
-* Ruff code quality checks
-* GitHub Actions CI
-* Makefile development commands
+- working scrape preview endpoint
+- database-backed scrape job endpoints
+- parser service
+- fetcher service
+- environment-based fetch configuration
+- SQLite local development setup
+- Docker Compose PostgreSQL setup
+- Render PostgreSQL deployment
+- API health check
+- database health check
+- Alembic database migrations
+- pagination metadata for job listing
+- job status filtering
+- automated test suite
+- smoke test script
+- Ruff code quality checks
+- GitHub Actions CI
+- Makefile development commands
+- production deployment on Render
 
 Planned next steps:
 
-* Add better error handling
-* Add request timeout configuration
-* Add database migrations with Alembic
-* Add production deployment
-* Add environment configuration notes
-* Later: background jobs with Redis/RQ
-* Later: Playwright support for JavaScript-heavy websites
-* Later: monitoring/logging basics
+- Add better error handling
+- Add request retry logic
+- Add rate limiting
+- Add request history improvements
+- Add background jobs with Redis/RQ
+- Add Playwright support for JavaScript-heavy websites
+- Add monitoring/logging basics
 
 ## Learning Goals
 
 This project is designed to practice:
 
-* Building APIs with FastAPI
-* Structuring backend projects
-* Making external HTTP requests
-* Parsing HTML
-* Saving results in a database
-* Working with SQLAlchemy models
-* Designing paginated API responses
-* Filtering API results
-* Testing API endpoints
-* Mocking external HTTP calls in tests
-* Running a backend app with Docker Compose
-* Using PostgreSQL in a containerized environment
-* Adding linting and formatting checks
-* Setting up GitHub Actions CI
-* Creating simple development workflow commands with Makefile
-* Preparing a project for deployment and cloud infrastructure
+- Building APIs with FastAPI
+- Structuring backend projects
+- Making external HTTP requests
+- Parsing HTML
+- Saving results in a database
+- Working with SQLAlchemy models
+- Managing database changes with Alembic migrations
+- Designing paginated API responses
+- Filtering API results
+- Testing API endpoints
+- Mocking external HTTP calls in tests
+- Running a backend app with Docker Compose
+- Using PostgreSQL in a containerized environment
+- Deploying a Docker-based backend API
+- Connecting a deployed API to a managed PostgreSQL database
+- Adding linting and formatting checks
+- Setting up GitHub Actions CI
+- Creating simple development workflow commands with Makefile
+- Running smoke tests against local and deployed APIs
+- Preparing a project for cloud/backend portfolio work
 
 ## Author
 
