@@ -459,3 +459,39 @@ def test_export_scrape_jobs_rejects_invalid_sort_field(client):
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Invalid sort field"}
+
+
+def test_list_scrape_jobs_filters_by_created_from(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+
+    response = client.get("/jobs?created_from=2999-01-01")
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+
+def test_list_scrape_jobs_filters_by_created_to(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+
+    response = client.get("/jobs?created_to=2000-01-01")
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+
+
+def test_list_scrape_jobs_rejects_invalid_created_from(client):
+    response = client.get("/jobs?created_from=bad-date")
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Invalid created_from. Use YYYY-MM-DD or ISO datetime."
+    }
+
+
+def test_export_scrape_jobs_filters_by_created_from(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+
+    response = client.get("/jobs/export.csv?created_from=2999-01-01")
+
+    assert response.status_code == 200
+    assert "https://example.com/" not in response.text

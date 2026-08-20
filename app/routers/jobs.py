@@ -1,5 +1,6 @@
 import csv
 from collections.abc import Callable
+from datetime import date, datetime, time
 from io import StringIO
 from typing import Annotated
 
@@ -39,6 +40,8 @@ StatusFilter = Annotated[str | None, Query()]
 SortByQuery = Annotated[str, Query()]
 SortOrderQuery = Annotated[str, Query()]
 UrlContainsFilter = Annotated[str | None, Query()]
+CreatedFromFilter = Annotated[str | None, Query()]
+CreatedToFilter = Annotated[str | None, Query()]
 AdminApiKeyHeader = Annotated[str | None, Header(alias="X-API-Key")]
 
 SessionFactory = Callable[[], Session]
@@ -62,6 +65,57 @@ def require_admin_api_key(x_api_key: AdminApiKeyHeader = None) -> None:
 
 
 AdminAuth = Annotated[None, Depends(require_admin_api_key)]
+
+
+def parse_datetime_filter(
+    value: str, field_name: str, end_of_day: bool = False
+) -> datetime:
+    try:
+        if len(value) == 10:
+            parsed_date = date.fromisoformat(value)
+            parsed_time = time.max if end_of_day else time.min
+            return datetime.combine(parsed_date, parsed_time)
+
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid {field_name}. Use YYYY-MM-DD or ISO datetime.",
+        ) from exc
+
+
+def apply_job_filters(
+    query,
+    status: str | None,
+    url_contains: str | None,
+    created_from: str | None,
+    created_to: str | None,
+):
+    if status is not None:
+        if status not in VALID_JOB_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid job status")
+
+        query = query.where(ScrapeJob.status == status)
+
+    if url_contains is not None:
+        query = query.where(ScrapeJob.url.ilike(f"%{url_contains}%"))
+
+    if created_from is not None:
+        query = query.where(
+            ScrapeJob.created_at >= parse_datetime_filter(created_from, "created_from")
+        )
+
+    if created_to is not None:
+        query = query.where(
+            ScrapeJob.created_at
+            <= parse_datetime_filter(
+                created_to,
+                "created_to",
+                end_of_day=True,
+            )
+        )
+
+    return query
 
 
 async def process_scrape_job(
@@ -138,19 +192,18 @@ def list_scrape_jobs(
     offset: OffsetQuery = 0,
     status: StatusFilter = None,
     url_contains: UrlContainsFilter = None,
+    created_from: CreatedFromFilter = None,
+    created_to: CreatedToFilter = None,
     sort_by: SortByQuery = "id",
     sort_order: SortOrderQuery = "desc",
 ) -> dict[str, int | str | list[ScrapeJob]]:
-    query = select(ScrapeJob)
-
-    if status is not None:
-        if status not in VALID_JOB_STATUSES:
-            raise HTTPException(status_code=400, detail="Invalid job status")
-
-        query = query.where(ScrapeJob.status == status)
-
-    if url_contains is not None:
-        query = query.where(ScrapeJob.url.ilike(f"%{url_contains}%"))
+    query = apply_job_filters(
+        select(ScrapeJob),
+        status,
+        url_contains,
+        created_from,
+        created_to,
+    )
 
     if sort_by not in VALID_SORT_FIELDS:
         raise HTTPException(status_code=400, detail="Invalid sort field")
@@ -184,19 +237,18 @@ def export_scrape_jobs(
     db: DBSession,
     status: StatusFilter = None,
     url_contains: UrlContainsFilter = None,
+    created_from: CreatedFromFilter = None,
+    created_to: CreatedToFilter = None,
     sort_by: SortByQuery = "id",
     sort_order: SortOrderQuery = "desc",
 ) -> Response:
-    query = select(ScrapeJob)
-
-    if status is not None:
-        if status not in VALID_JOB_STATUSES:
-            raise HTTPException(status_code=400, detail="Invalid job status")
-
-        query = query.where(ScrapeJob.status == status)
-
-    if url_contains is not None:
-        query = query.where(ScrapeJob.url.ilike(f"%{url_contains}%"))
+    query = apply_job_filters(
+        select(ScrapeJob),
+        status,
+        url_contains,
+        created_from,
+        created_to,
+    )
 
     if sort_by not in VALID_SORT_FIELDS:
         raise HTTPException(status_code=400, detail="Invalid sort field")

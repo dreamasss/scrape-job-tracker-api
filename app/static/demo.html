@@ -107,6 +107,12 @@
     <label>URL contains:</label>
     <input id="urlContains" placeholder="example">
 
+    <label>Created from:</label>
+    <input id="createdFrom" type="date">
+
+    <label>Created to:</label>
+    <input id="createdTo" type="date">
+
     <label>Sort:</label>
     <select id="sortBy">
       <option value="id">id</option>
@@ -218,9 +224,13 @@
 
       const status = document.getElementById("statusFilter").value;
       const urlContains = document.getElementById("urlContains").value;
+      const createdFrom = document.getElementById("createdFrom").value;
+      const createdTo = document.getElementById("createdTo").value;
 
       if (status) params.set("status", status);
       if (urlContains) params.set("url_contains", urlContains);
+      if (createdFrom) params.set("created_from", createdFrom);
+      if (createdTo) params.set("created_to", createdTo);
 
       return params;
     }
