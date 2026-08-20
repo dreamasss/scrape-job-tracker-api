@@ -18,7 +18,9 @@ def parse_html(html: str) -> dict:
     h1 = clean_text(h1_tag.get_text(" ", strip=True) if h1_tag else None)
 
     description_tag = soup.find("meta", attrs={"name": "description"})
-    meta_description = clean_text(description_tag.get("content") if description_tag else None)
+    meta_description = clean_text(
+        description_tag.get("content") if description_tag else None
+    )
 
     links_count = len(soup.find_all("a"))
 

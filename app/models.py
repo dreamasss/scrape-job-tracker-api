@@ -11,7 +11,9 @@ class ScrapeJob(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     url: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending", index=True
+    )
 
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
     h1: Mapped[str | None] = mapped_column(Text, nullable=True)

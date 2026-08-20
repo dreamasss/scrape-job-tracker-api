@@ -1,3 +1,5 @@
+from typing import Annotated
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -13,9 +15,14 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 VALID_JOB_STATUSES = {"pending", "success", "failed"}
 
+DBSession = Annotated[Session, Depends(get_db)]
+StatusFilter = Annotated[str | None, Query(alias="status")]
+LimitQuery = Annotated[int, Query(ge=1, le=100)]
+OffsetQuery = Annotated[int, Query(ge=0)]
+
 
 @router.post("", response_model=ScrapeJobRead, status_code=status.HTTP_201_CREATED)
-async def create_scrape_job(data: ScrapeJobCreate, db: Session = Depends(get_db)):
+async def create_scrape_job(data: ScrapeJobCreate, db: DBSession):
     job = ScrapeJob(url=str(data.url), status="pending")
     db.add(job)
     db.commit()
@@ -43,10 +50,10 @@ async def create_scrape_job(data: ScrapeJobCreate, db: Session = Depends(get_db)
 
 @router.get("", response_model=list[ScrapeJobRead])
 def list_scrape_jobs(
-    status_filter: str | None = Query(default=None, alias="status"),
-    limit: int = Query(default=50, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
-    db: Session = Depends(get_db),
+    db: DBSession,
+    status_filter: StatusFilter = None,
+    limit: LimitQuery = 50,
+    offset: OffsetQuery = 0,
 ):
     query = select(ScrapeJob)
 
@@ -56,15 +63,17 @@ def list_scrape_jobs(
 
         query = query.where(ScrapeJob.status == status_filter)
 
-    jobs = db.execute(
-        query.order_by(ScrapeJob.id.desc()).limit(limit).offset(offset)
-    ).scalars().all()
+    jobs = (
+        db.execute(query.order_by(ScrapeJob.id.desc()).limit(limit).offset(offset))
+        .scalars()
+        .all()
+    )
 
     return jobs
 
 
 @router.get("/{job_id}", response_model=ScrapeJobRead)
-def get_scrape_job(job_id: int, db: Session = Depends(get_db)):
+def get_scrape_job(job_id: int, db: DBSession):
     job = db.get(ScrapeJob, job_id)
 
     if job is None:

@@ -24,5 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run Ruff
+        run: |
+          ruff check .
+          ruff format --check .
+
       - name: Run tests
         run: python -m pytest -q

@@ -25,7 +25,9 @@ async def scrape_preview(data: ScrapePreviewRequest):
     try:
         html = await fetch_html(str(data.url))
     except httpx.HTTPError as error:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {error}") from error
+        raise HTTPException(
+            status_code=400, detail=f"Failed to fetch URL: {error}"
+        ) from error
 
     parsed = parse_html(html)
 
