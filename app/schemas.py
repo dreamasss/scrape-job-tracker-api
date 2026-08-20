@@ -26,3 +26,10 @@ class ScrapeJobListResponse(BaseModel):
     limit: int
     offset: int
     items: list[ScrapeJobRead]
+
+
+class ScrapeJobStatsResponse(BaseModel):
+    total: int
+    pending: int
+    success: int
+    failed: int

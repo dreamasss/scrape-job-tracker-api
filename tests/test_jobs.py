@@ -195,3 +195,40 @@ def test_list_scrape_jobs_rejects_invalid_offset(client):
     response = client.get("/jobs?offset=-1")
 
     assert response.status_code == 422
+
+
+def test_get_scrape_job_stats(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+    create_job(client, monkeypatch, "https://example.org")
+
+    mock_failed_fetch(monkeypatch)
+
+    response = client.post("/jobs", json={"url": "https://broken.example.com"})
+
+    assert response.status_code == 201
+
+    response = client.get("/jobs/stats")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 3
+    assert data["pending"] == 0
+    assert data["success"] == 2
+    assert data["failed"] == 1
+
+
+def test_get_scrape_job_stats_empty(client):
+    response = client.get("/jobs/stats")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data == {
+        "total": 0,
+        "pending": 0,
+        "success": 0,
+        "failed": 0,
+    }

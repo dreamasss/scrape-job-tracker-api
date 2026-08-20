@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.database import get_db
 from app.models import ScrapeJob
-from app.schemas import ScrapeJobCreate, ScrapeJobListResponse, ScrapeJobRead
+from app.schemas import (
+    ScrapeJobCreate,
+    ScrapeJobListResponse,
+    ScrapeJobRead,
+    ScrapeJobStatsResponse,
+)
 from app.services.fetcher import fetch_html
 from app.services.parser import parse_html
 
@@ -117,6 +122,26 @@ def list_scrape_jobs(
         "limit": limit,
         "offset": offset,
         "items": jobs,
+    }
+
+
+@router.get("/stats", response_model=ScrapeJobStatsResponse)
+def get_scrape_job_stats(db: DBSession) -> dict[str, int]:
+    rows = db.execute(
+        select(ScrapeJob.status, func.count()).group_by(ScrapeJob.status)
+    ).all()
+
+    counts = {status: count for status, count in rows}
+
+    pending = counts.get("pending", 0)
+    success = counts.get("success", 0)
+    failed = counts.get("failed", 0)
+
+    return {
+        "total": pending + success + failed,
+        "pending": pending,
+        "success": success,
+        "failed": failed,
     }
 
 
