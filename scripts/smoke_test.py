@@ -89,6 +89,13 @@ def request_json(
     return status_code, parse_json(raw_body)
 
 
+def get_header(headers: dict[str, str], name: str) -> str:
+    for key, value in headers.items():
+        if key.lower() == name.lower():
+            return value
+    return ""
+
+
 def assert_status(status_code: int, expected: int, method: str, path: str) -> None:
     if status_code != expected:
         fail(f"Expected {expected} for {method} {path}, got {status_code}")
@@ -141,7 +148,7 @@ def main() -> None:
 
     status_code, demo_html, demo_headers = request_raw("GET", "/demo")
     assert_status(status_code, 200, "GET", "/demo")
-    assert "text/html" in demo_headers["Content-Type"]
+    assert "text/html" in get_header(demo_headers, "Content-Type")
     assert "Scrape Job Tracker Demo" in demo_html
 
     status_code, preview = request_json(
@@ -186,6 +193,21 @@ def main() -> None:
     assert jobs["sort_by"] == "id"
     assert jobs["sort_order"] == "asc"
     assert len(jobs["items"]) >= 1
+
+    status_code, csv_body, csv_headers = request_raw(
+        "GET",
+        "/jobs/export.csv?sort_by=id&sort_order=asc&url_contains=example",
+    )
+    assert_status(status_code, 200, "GET", "/jobs/export.csv")
+    assert "text/csv" in get_header(csv_headers, "Content-Type")
+    content_disposition = get_header(csv_headers, "Content-Disposition")
+    assert "attachment" in content_disposition.lower()
+    assert "scrape_jobs.csv" in content_disposition
+    assert (
+        "id,url,status,title,h1,meta_description,links_count,error_message,created_at"
+        in csv_body
+    )
+    assert "https://example.com/" in csv_body
 
     if ADMIN_API_KEY:
         admin_job = create_example_job()
