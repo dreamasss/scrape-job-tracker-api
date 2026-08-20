@@ -34,6 +34,7 @@ OffsetQuery = Annotated[int, Query(ge=0)]
 StatusFilter = Annotated[str | None, Query()]
 SortByQuery = Annotated[str, Query()]
 SortOrderQuery = Annotated[str, Query()]
+UrlContainsFilter = Annotated[str | None, Query()]
 
 SessionFactory = Callable[[], Session]
 
@@ -118,6 +119,7 @@ def list_scrape_jobs(
     limit: LimitQuery = 50,
     offset: OffsetQuery = 0,
     status: StatusFilter = None,
+    url_contains: UrlContainsFilter = None,
     sort_by: SortByQuery = "id",
     sort_order: SortOrderQuery = "desc",
 ) -> dict[str, int | str | list[ScrapeJob]]:
@@ -128,6 +130,9 @@ def list_scrape_jobs(
             raise HTTPException(status_code=400, detail="Invalid job status")
 
         query = query.where(ScrapeJob.status == status)
+
+    if url_contains is not None:
+        query = query.where(ScrapeJob.url.ilike(f"%{url_contains}%"))
 
     if sort_by not in VALID_SORT_FIELDS:
         raise HTTPException(status_code=400, detail="Invalid sort field")

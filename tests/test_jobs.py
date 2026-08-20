@@ -330,3 +330,38 @@ def test_create_scrape_job_rejects_localhost_url(client):
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Blocked private or local URL"}
+
+
+def test_list_scrape_jobs_filters_by_url_contains(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+    create_job(client, monkeypatch, "https://github.com")
+
+    response = client.get("/jobs?url_contains=github")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["url"] == "https://github.com/"
+
+
+def test_list_scrape_jobs_filters_by_status_and_url_contains(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+
+    mock_failed_fetch(monkeypatch)
+
+    response = client.post("/jobs", json={"url": "https://broken.example.com"})
+
+    assert response.status_code == 201
+
+    response = client.get("/jobs?status=failed&url_contains=broken")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["total"] == 1
+    assert data["items"][0]["status"] == "failed"
+    assert data["items"][0]["url"] == "https://broken.example.com/"
