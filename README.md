@@ -668,3 +668,21 @@ Example:
 curl -X DELETE https://scrape-job-tracker-api-v2.onrender.com/jobs/1 \
   -H "X-API-Key: your-secret-key"
 ```
+
+## CSV Export
+
+Scrape jobs can be exported as CSV:
+
+```http
+GET /jobs/export.csv
+```
+
+The export endpoint supports the same filters and sorting as the job list:
+
+```http
+GET /jobs/export.csv?status=success
+GET /jobs/export.csv?url_contains=example
+GET /jobs/export.csv?sort_by=id&sort_order=asc
+```
+
+The `/demo` page includes a **Download CSV** button.

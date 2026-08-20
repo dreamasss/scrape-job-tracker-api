@@ -1591,3 +1591,30 @@ Dabartinis testų rezultatas:
 ```text
 49 passed
 ```
+
+---
+
+## Update — CSV export
+
+Pridėtas CSV export endpointas:
+
+```text
+GET /jobs/export.csv
+```
+
+Jis eksportuoja scrape jobus į CSV failą ir palaiko tuos pačius filtrus/rūšiavimą kaip `GET /jobs`:
+
+```text
+status
+url_contains
+sort_by
+sort_order
+```
+
+Demo puslapyje pridėtas `Download CSV` mygtukas.
+
+Dabartinis laukiamas testų rezultatas:
+
+```text
+52 passed
+```
