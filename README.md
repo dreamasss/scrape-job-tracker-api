@@ -1,3 +1,11 @@
+## Live Demo
+
+API: https://scrape-job-tracker-api.onrender.com
+
+Swagger docs: https://scrape-job-tracker-api.onrender.com/docs
+
+Health check: https://scrape-job-tracker-api.onrender.com/health/db
+
 # Scrape Job Tracker API
 
 A FastAPI backend project for submitting URLs, scraping basic page data, storing scrape jobs, and returning structured results.
