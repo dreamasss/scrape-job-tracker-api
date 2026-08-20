@@ -253,3 +253,43 @@ def test_delete_scrape_job_returns_404_for_unknown_id(client):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Scrape job not found"}
+
+
+def test_retry_scrape_job(client, monkeypatch):
+    mock_failed_fetch(monkeypatch)
+
+    response = client.post("/jobs", json={"url": "https://broken.example.com"})
+
+    assert response.status_code == 201
+
+    failed_job = client.get(f"/jobs/{response.json()['id']}").json()
+
+    assert failed_job["status"] == "failed"
+    assert failed_job["error_message"] == "Fetch failed"
+
+    mock_successful_fetch(monkeypatch)
+
+    response = client.post(f"/jobs/{failed_job['id']}/retry")
+
+    assert response.status_code == 202
+
+    retried_job = response.json()
+
+    assert retried_job["status"] == "pending"
+    assert retried_job["title"] is None
+    assert retried_job["h1"] is None
+    assert retried_job["meta_description"] is None
+    assert retried_job["links_count"] is None
+    assert retried_job["error_message"] is None
+
+    finished_job = client.get(f"/jobs/{failed_job['id']}").json()
+
+    assert finished_job["status"] == "success"
+    assert finished_job["title"] == "Example Domain"
+
+
+def test_retry_scrape_job_returns_404_for_unknown_id(client):
+    response = client.post("/jobs/999/retry")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Scrape job not found"}

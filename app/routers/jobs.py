@@ -153,6 +153,49 @@ def get_scrape_job_stats(db: DBSession) -> dict[str, int]:
     }
 
 
+@router.post(
+    "/{job_id}/retry",
+    response_model=ScrapeJobRead,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def retry_scrape_job(
+    job_id: int,
+    background_tasks: BackgroundTasks,
+    db: DBSession,
+) -> ScrapeJobRead:
+    job = db.get(ScrapeJob, job_id)
+
+    if job is None:
+        raise HTTPException(status_code=404, detail="Scrape job not found")
+
+    job.status = "pending"
+    job.title = None
+    job.h1 = None
+    job.meta_description = None
+    job.links_count = None
+    job.error_message = None
+
+    db.commit()
+    db.refresh(job)
+
+    job_response = ScrapeJobRead.model_validate(job)
+
+    session_factory = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=db.get_bind(),
+    )
+
+    background_tasks.add_task(
+        process_scrape_job,
+        job.id,
+        job.url,
+        session_factory,
+    )
+
+    return job_response
+
+
 @router.get("/{job_id}", response_model=ScrapeJobRead)
 def get_scrape_job(
     job_id: int,
