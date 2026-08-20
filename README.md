@@ -6,11 +6,11 @@ This project is part of my backend learning portfolio. The goal is to build a pr
 
 ## Live Demo
 
-API: https://scrape-job-tracker-api.onrender.com
+API: https://scrape-job-tracker-api-v2.onrender.com
 
-Swagger docs: https://scrape-job-tracker-api.onrender.com/docs
+Swagger docs: https://scrape-job-tracker-api-v2.onrender.com/docs
 
-Database health check: https://scrape-job-tracker-api.onrender.com/health/db
+Database health check: https://scrape-job-tracker-api-v2.onrender.com/health/db
 
 > Note: this project is deployed on a free Render instance, so the first request after inactivity may take some time to wake up.
 
@@ -516,7 +516,7 @@ The smoke test checks:
 To run the smoke test against the deployed Render service:
 
 ```bash
-BASE_URL=https://scrape-job-tracker-api.onrender.com make smoke
+BASE_URL=https://scrape-job-tracker-api-v2.onrender.com make smoke
 ```
 
 ## Code Quality
@@ -577,9 +577,9 @@ Production setup:
 Live endpoints:
 
 ```text
-https://scrape-job-tracker-api.onrender.com
-https://scrape-job-tracker-api.onrender.com/docs
-https://scrape-job-tracker-api.onrender.com/health/db
+https://scrape-job-tracker-api-v2.onrender.com
+https://scrape-job-tracker-api-v2.onrender.com/docs
+https://scrape-job-tracker-api-v2.onrender.com/health/db
 ```
 
 ## Project Status
