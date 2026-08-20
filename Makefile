@@ -1,4 +1,4 @@
-.PHONY: install test lint format format-check check run docker-up docker-down docker-logs
+.PHONY: install test lint format format-check check run smoke docker-up docker-down docker-logs
 
 install:
 	pip install -r requirements.txt
@@ -22,6 +22,9 @@ check:
 
 run:
 	uvicorn app.main:app --reload
+
+smoke:
+	python scripts/smoke_test.py
 
 docker-up:
 	docker compose up --build
