@@ -5,11 +5,9 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.database import Base, engine, get_db
+from app.database import get_db
 from app.routers.jobs import router as jobs_router
 from app.routers.scrape import router as scrape_router
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Scrape Job Tracker API",
