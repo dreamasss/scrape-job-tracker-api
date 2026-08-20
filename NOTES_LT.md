@@ -1618,3 +1618,35 @@ Dabartinis laukiamas testų rezultatas:
 ```text
 52 passed
 ```
+
+---
+
+## Update — Created date filters
+
+Pridėti `created_from` ir `created_to` filtrai.
+
+Jie veikia šiuose endpointuose:
+
+```text
+GET /jobs
+GET /jobs/export.csv
+```
+
+Pavyzdžiai:
+
+```text
+GET /jobs?created_from=2026-08-20
+GET /jobs?created_to=2026-08-20
+GET /jobs?created_from=2026-08-20&created_to=2026-08-21
+GET /jobs/export.csv?created_from=2026-08-20&created_to=2026-08-21
+```
+
+Palaikomi formatai:
+
+```text
+YYYY-MM-DD
+YYYY-MM-DDTHH:MM:SS
+YYYY-MM-DDTHH:MM:SSZ
+```
+
+Jei `created_to` paduodamas tik kaip data, API filtruoja iki tos dienos pabaigos.

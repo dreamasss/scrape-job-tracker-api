@@ -686,3 +686,24 @@ GET /jobs/export.csv?sort_by=id&sort_order=asc
 ```
 
 The `/demo` page includes a **Download CSV** button.
+
+## Created Date Filters
+
+Job list and CSV export support filtering by creation date:
+
+```http
+GET /jobs?created_from=2026-08-20
+GET /jobs?created_to=2026-08-20
+GET /jobs?created_from=2026-08-20&created_to=2026-08-21
+GET /jobs/export.csv?created_from=2026-08-20&created_to=2026-08-21
+```
+
+Supported formats:
+
+```text
+YYYY-MM-DD
+YYYY-MM-DDTHH:MM:SS
+YYYY-MM-DDTHH:MM:SSZ
+```
+
+When a date-only value is used for `created_to`, the API treats it as the end of that day.

@@ -194,6 +194,14 @@ def main() -> None:
     assert jobs["sort_order"] == "asc"
     assert len(jobs["items"]) >= 1
 
+    status_code, future_jobs = request_json(
+        "GET",
+        "/jobs?created_from=2999-01-01",
+    )
+    assert_status(status_code, 200, "GET", "/jobs?created_from=2999-01-01")
+    assert future_jobs["total"] == 0
+    assert future_jobs["items"] == []
+
     status_code, csv_body, csv_headers = request_raw(
         "GET",
         "/jobs/export.csv?sort_by=id&sort_order=asc&url_contains=example",
