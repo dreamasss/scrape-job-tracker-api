@@ -87,7 +87,7 @@ def main() -> None:
         "/jobs",
         {"url": "https://example.com"},
     )
-    assert_status(status_code, 200, "POST", "/jobs")
+    assert_status(status_code, 201, "POST", "/jobs")
     assert created_job["status"] == "pending"
 
     finished_job = wait_for_job(created_job["id"])

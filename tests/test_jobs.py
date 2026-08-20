@@ -35,7 +35,7 @@ def create_job(client, monkeypatch, url: str = "https://example.com"):
 
     response = client.post("/jobs", json={"url": url})
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     return response.json()
 
@@ -74,7 +74,7 @@ def test_background_scrape_job_updates_to_failed(client, monkeypatch):
 
     response = client.post("/jobs", json={"url": "https://broken.example.com"})
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     job = response.json()
 
@@ -164,7 +164,7 @@ def test_list_scrape_jobs_filters_by_failed_status(client, monkeypatch):
 
     response = client.post("/jobs", json={"url": "https://broken.example.com"})
 
-    assert response.status_code == 200
+    assert response.status_code == 201
 
     response = client.get("/jobs?status=failed")
 

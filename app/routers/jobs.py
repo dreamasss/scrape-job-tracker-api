@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -56,7 +56,7 @@ async def process_scrape_job(
         db.close()
 
 
-@router.post("", response_model=ScrapeJobRead)
+@router.post("", response_model=ScrapeJobRead, status_code=status.HTTP_201_CREATED)
 def create_scrape_job(
     job_in: ScrapeJobCreate,
     background_tasks: BackgroundTasks,
