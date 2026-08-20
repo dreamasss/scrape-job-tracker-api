@@ -318,6 +318,12 @@ docker compose down
 
 ## Makefile Commands
 
+Run database migrations:
+
+```bash
+make migrate
+```
+
 Install dependencies:
 
 ```bash
