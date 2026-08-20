@@ -93,9 +93,12 @@ def test_list_scrape_jobs(client, monkeypatch):
 
     data = response.json()
 
-    assert len(data) == 2
-    assert data[0]["id"] == 2
-    assert data[1]["id"] == 1
+    assert data["total"] == 2
+    assert data["limit"] == 50
+    assert data["offset"] == 0
+    assert len(data["items"]) == 2
+    assert data["items"][0]["id"] == 2
+    assert data["items"][1]["id"] == 1
 
 
 def test_get_scrape_job_by_id(client, monkeypatch):
@@ -146,8 +149,11 @@ def test_list_scrape_jobs_uses_limit_and_offset(client, monkeypatch):
 
     data = response.json()
 
-    assert len(data) == 1
-    assert data[0]["id"] == 2
+    assert data["total"] == 3
+    assert data["limit"] == 1
+    assert data["offset"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["id"] == 2
 
 
 def test_list_scrape_jobs_filters_by_success_status(client, monkeypatch):
@@ -161,8 +167,9 @@ def test_list_scrape_jobs_filters_by_success_status(client, monkeypatch):
 
     data = response.json()
 
-    assert len(data) == 1
-    assert data[0]["status"] == "success"
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["status"] == "success"
 
 
 def test_list_scrape_jobs_filters_by_failed_status(client, monkeypatch):
@@ -176,8 +183,9 @@ def test_list_scrape_jobs_filters_by_failed_status(client, monkeypatch):
 
     data = response.json()
 
-    assert len(data) == 1
-    assert data[0]["status"] == "failed"
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["status"] == "failed"
 
 
 def test_list_scrape_jobs_rejects_invalid_status(client):

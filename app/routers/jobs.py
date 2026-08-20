@@ -2,12 +2,12 @@ from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import ScrapeJob
-from app.schemas import ScrapeJobCreate, ScrapeJobRead
+from app.schemas import ScrapeJobCreate, ScrapeJobListResponse, ScrapeJobRead
 from app.services.fetcher import fetch_html
 from app.services.parser import parse_html
 
@@ -48,7 +48,7 @@ async def create_scrape_job(data: ScrapeJobCreate, db: DBSession):
     return job
 
 
-@router.get("", response_model=list[ScrapeJobRead])
+@router.get("", response_model=ScrapeJobListResponse)
 def list_scrape_jobs(
     db: DBSession,
     status_filter: StatusFilter = None,
@@ -63,13 +63,20 @@ def list_scrape_jobs(
 
         query = query.where(ScrapeJob.status == status_filter)
 
+    total = db.execute(select(func.count()).select_from(query.subquery())).scalar_one()
+
     jobs = (
         db.execute(query.order_by(ScrapeJob.id.desc()).limit(limit).offset(offset))
         .scalars()
         .all()
     )
 
-    return jobs
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": jobs,
+    }
 
 
 @router.get("/{job_id}", response_model=ScrapeJobRead)

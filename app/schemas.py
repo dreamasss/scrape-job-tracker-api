@@ -19,3 +19,10 @@ class ScrapeJobRead(BaseModel):
     links_count: int | None
     error_message: str | None
     created_at: datetime
+
+
+class ScrapeJobListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[ScrapeJobRead]
