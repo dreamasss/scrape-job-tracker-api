@@ -293,3 +293,33 @@ def test_retry_scrape_job_returns_404_for_unknown_id(client):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Scrape job not found"}
+
+
+def test_list_scrape_jobs_sorts_by_id_ascending(client, monkeypatch):
+    first_job = create_job(client, monkeypatch, "https://example.com")
+    second_job = create_job(client, monkeypatch, "https://example.org")
+
+    response = client.get("/jobs?sort_by=id&sort_order=asc")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["sort_by"] == "id"
+    assert data["sort_order"] == "asc"
+    assert data["items"][0]["id"] == first_job["id"]
+    assert data["items"][1]["id"] == second_job["id"]
+
+
+def test_list_scrape_jobs_rejects_invalid_sort_field(client):
+    response = client.get("/jobs?sort_by=bad")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid sort field"}
+
+
+def test_list_scrape_jobs_rejects_invalid_sort_order(client):
+    response = client.get("/jobs?sort_order=sideways")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid sort order"}

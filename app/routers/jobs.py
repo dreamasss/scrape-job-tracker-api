@@ -31,10 +31,17 @@ DBSession = Annotated[Session, Depends(get_db)]
 LimitQuery = Annotated[int, Query(ge=1, le=100)]
 OffsetQuery = Annotated[int, Query(ge=0)]
 StatusFilter = Annotated[str | None, Query()]
+SortByQuery = Annotated[str, Query()]
+SortOrderQuery = Annotated[str, Query()]
 
 SessionFactory = Callable[[], Session]
 
 VALID_JOB_STATUSES = {"pending", "success", "failed"}
+VALID_SORT_FIELDS = {
+    "id": ScrapeJob.id,
+    "created_at": ScrapeJob.created_at,
+}
+VALID_SORT_ORDERS = {"asc", "desc"}
 
 
 async def process_scrape_job(
@@ -108,7 +115,9 @@ def list_scrape_jobs(
     limit: LimitQuery = 50,
     offset: OffsetQuery = 0,
     status: StatusFilter = None,
-) -> dict[str, int | list[ScrapeJob]]:
+    sort_by: SortByQuery = "id",
+    sort_order: SortOrderQuery = "desc",
+) -> dict[str, int | str | list[ScrapeJob]]:
     query = select(ScrapeJob)
 
     if status is not None:
@@ -117,10 +126,19 @@ def list_scrape_jobs(
 
         query = query.where(ScrapeJob.status == status)
 
+    if sort_by not in VALID_SORT_FIELDS:
+        raise HTTPException(status_code=400, detail="Invalid sort field")
+
+    if sort_order not in VALID_SORT_ORDERS:
+        raise HTTPException(status_code=400, detail="Invalid sort order")
+
     total = db.execute(select(func.count()).select_from(query.subquery())).scalar_one()
 
+    sort_column = VALID_SORT_FIELDS[sort_by]
+    order_expression = sort_column.asc() if sort_order == "asc" else sort_column.desc()
+
     jobs = (
-        db.execute(query.order_by(ScrapeJob.id.desc()).limit(limit).offset(offset))
+        db.execute(query.order_by(order_expression).limit(limit).offset(offset))
         .scalars()
         .all()
     )
@@ -129,6 +147,8 @@ def list_scrape_jobs(
         "total": total,
         "limit": limit,
         "offset": offset,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
         "items": jobs,
     }
 

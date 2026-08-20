@@ -25,6 +25,8 @@ class ScrapeJobListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+    sort_by: str
+    sort_order: str
     items: list[ScrapeJobRead]
 
 
