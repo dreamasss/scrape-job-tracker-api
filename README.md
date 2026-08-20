@@ -2,18 +2,19 @@
 
 A FastAPI backend project for submitting URLs, scraping basic page data, storing scrape jobs, and returning structured results.
 
-This project is part of my backend learning portfolio. The goal is to build a practical API that combines Python backend development with web scraping, databases, testing, Docker, and cloud-ready infrastructure.
+This project is part of my backend learning portfolio. The goal is to build a practical API that combines Python backend development with web scraping, databases, testing, Docker, CI, and cloud-ready infrastructure.
 
 ## Current Features
 
 * FastAPI application
 * Health check endpoint
 * URL preview scraping endpoint
-* Scrape job endpoints
+* Database-backed scrape job endpoints
 * SQLite support for local development
 * PostgreSQL support through Docker Compose
 * SQLAlchemy database models
 * HTML parsing service
+* External page fetching service
 * Extracts:
 
   * page title
@@ -25,11 +26,17 @@ This project is part of my backend learning portfolio. The goal is to build a pr
   * pending
   * success
   * failed
+* Job listing with:
+
+  * pagination metadata
+  * limit / offset
+  * status filtering
 * Swagger/OpenAPI documentation
 * Automated tests with pytest
+* Ruff linting and formatting checks
+* GitHub Actions CI
 * Dockerfile
 * Docker Compose setup with API + PostgreSQL
-* GitHub repository setup
 
 ## Tech Stack
 
@@ -45,6 +52,7 @@ This project is part of my backend learning portfolio. The goal is to build a pr
 * Ruff
 * Docker
 * Docker Compose
+* GitHub Actions
 
 ## API Endpoints
 
@@ -136,7 +144,57 @@ Example response:
 GET /jobs
 ```
 
-Returns all saved scrape jobs, ordered by newest first.
+Returns saved scrape jobs with pagination metadata.
+
+Optional query parameters:
+
+```text
+limit=50
+offset=0
+status=success
+```
+
+Examples:
+
+```http
+GET /jobs?limit=10&offset=0
+GET /jobs?status=success
+GET /jobs?status=failed
+```
+
+Example response:
+
+```json
+{
+  "total": 2,
+  "limit": 50,
+  "offset": 0,
+  "items": [
+    {
+      "id": 2,
+      "url": "https://example.org/",
+      "status": "success",
+      "title": "Example Page",
+      "h1": "Main heading",
+      "meta_description": "Example description",
+      "links_count": 2,
+      "error_message": null,
+      "created_at": "2026-08-20T12:05:00"
+    },
+    {
+      "id": 1,
+      "url": "https://example.com/",
+      "status": "success",
+      "title": "Example Domain",
+      "h1": "Example Domain",
+      "meta_description": null,
+      "links_count": 1,
+      "error_message": null,
+      "created_at": "2026-08-20T12:00:00"
+    }
+  ]
+}
+```
 
 ### Get Scrape Job by ID
 
@@ -145,6 +203,14 @@ GET /jobs/{job_id}
 ```
 
 Returns one saved scrape job by ID.
+
+If the job does not exist, the API returns:
+
+```json
+{
+  "detail": "Scrape job not found"
+}
+```
 
 ## Running Locally
 
@@ -225,10 +291,41 @@ python -m pytest -q
 Current expected result:
 
 ```text
-9 passed
+14 passed
 ```
 
 The tests use an isolated in-memory SQLite database and mocked HTML fetching, so they do not depend on the real internet.
+
+## Code Quality
+
+Run Ruff linting:
+
+```bash
+ruff check .
+```
+
+Run Ruff formatting check:
+
+```bash
+ruff format --check .
+```
+
+Format code automatically:
+
+```bash
+ruff format .
+```
+
+## CI
+
+This project uses GitHub Actions.
+
+On every push and pull request to `main`, CI runs:
+
+* dependency installation
+* Ruff linting
+* Ruff formatting check
+* pytest test suite
 
 ## Project Status
 
@@ -242,14 +339,17 @@ Current version includes:
 * fetcher service
 * SQLite local development setup
 * Docker Compose PostgreSQL setup
+* pagination metadata for job listing
+* job status filtering
 * automated test suite
+* Ruff code quality checks
+* GitHub Actions CI
 
 Planned next steps:
 
-* Add pagination for `/jobs`
-* Add filters by job status
 * Add better error handling
-* Add GitHub Actions CI
+* Add request timeout configuration
+* Add database migrations with Alembic
 * Add production deployment
 * Add environment configuration notes
 * Later: background jobs with Redis/RQ
@@ -266,10 +366,15 @@ This project is designed to practice:
 * Parsing HTML
 * Saving results in a database
 * Working with SQLAlchemy models
+* Designing paginated API responses
+* Filtering API results
 * Testing API endpoints
 * Mocking external HTTP calls in tests
 * Running a backend app with Docker Compose
-* Preparing a project for CI/CD and cloud deployment
+* Using PostgreSQL in a containerized environment
+* Adding linting and formatting checks
+* Setting up GitHub Actions CI
+* Preparing a project for deployment and cloud infrastructure
 
 ## Author
 
