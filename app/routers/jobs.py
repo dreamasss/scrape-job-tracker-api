@@ -24,6 +24,7 @@ from app.schemas import (
 )
 from app.services.fetcher import fetch_html
 from app.services.parser import parse_html
+from app.services.url_safety import validate_public_url
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -82,6 +83,8 @@ def create_scrape_job(
     background_tasks: BackgroundTasks,
     db: DBSession,
 ) -> ScrapeJobRead:
+    validate_public_url(str(job_in.url))
+
     job = ScrapeJob(
         url=str(job_in.url),
         status="pending",

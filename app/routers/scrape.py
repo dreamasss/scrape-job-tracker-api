@@ -4,6 +4,7 @@ from pydantic import BaseModel, HttpUrl
 
 from app.services.fetcher import fetch_html
 from app.services.parser import parse_html
+from app.services.url_safety import validate_public_url
 
 router = APIRouter(prefix="/scrape", tags=["scrape"])
 
@@ -21,17 +22,22 @@ class ScrapePreviewResponse(BaseModel):
 
 
 @router.post("/preview", response_model=ScrapePreviewResponse)
-async def scrape_preview(data: ScrapePreviewRequest):
+async def scrape_preview(request: ScrapePreviewRequest) -> ScrapePreviewResponse:
+    url = str(request.url)
+
+    validate_public_url(url)
+
     try:
-        html = await fetch_html(str(data.url))
-    except httpx.HTTPError as error:
+        html = await fetch_html(url)
+    except httpx.HTTPError as exc:
         raise HTTPException(
-            status_code=400, detail=f"Failed to fetch URL: {error}"
-        ) from error
+            status_code=400,
+            detail=f"Failed to fetch URL: {exc}",
+        ) from exc
 
     parsed = parse_html(html)
 
-    return {
-        "url": str(data.url),
+    return ScrapePreviewResponse(
+        url=url,
         **parsed,
-    }
+    )

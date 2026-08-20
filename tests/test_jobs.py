@@ -323,3 +323,10 @@ def test_list_scrape_jobs_rejects_invalid_sort_order(client):
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Invalid sort order"}
+
+
+def test_create_scrape_job_rejects_localhost_url(client):
+    response = client.post("/jobs", json={"url": "http://localhost:8000"})
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Blocked private or local URL"}
