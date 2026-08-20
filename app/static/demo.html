@@ -118,13 +118,28 @@
       <option value="asc">asc</option>
     </select>
 
-    <button onclick="loadJobs()">Apply</button>
+    <label>Limit:</label>
+    <select id="limitSelect" onchange="applyFilters()">
+      <option value="10">10</option>
+      <option value="25">25</option>
+      <option value="50" selected>50</option>
+    </select>
+
+    <button onclick="applyFilters()">Apply</button>
     <button class="secondary" onclick="downloadCsv()">Download CSV</button>
 
+    <div id="jobsSummary"></div>
+    <div id="pageControls" style="margin: 12px 0;">
+      <button class="secondary" id="prevButton" onclick="previousPage()">Previous</button>
+      <button class="secondary" id="nextButton" onclick="nextPage()">Next</button>
+    </div>
     <div id="jobsTable"></div>
   </div>
 
   <script>
+    let currentOffset = 0;
+    let autoRefreshTimer = null;
+
     function showMessage(value) {
       document.getElementById("message").textContent =
         typeof value === "string" ? value : JSON.stringify(value, null, 2);
@@ -195,8 +210,9 @@
 
     function buildJobQueryParams() {
       const params = new URLSearchParams();
-      params.set("limit", "50");
-      params.set("offset", "0");
+      const limit = document.getElementById("limitSelect").value;
+      params.set("limit", limit);
+      params.set("offset", String(currentOffset));
       params.set("sort_by", document.getElementById("sortBy").value);
       params.set("sort_order", document.getElementById("sortOrder").value);
 
@@ -209,10 +225,42 @@
       return params;
     }
 
+    function applyFilters() {
+      currentOffset = 0;
+      loadEverything();
+    }
+
+    function previousPage() {
+      const limit = Number(document.getElementById("limitSelect").value);
+      currentOffset = Math.max(0, currentOffset - limit);
+      loadEverything();
+    }
+
+    function nextPage() {
+      const limit = Number(document.getElementById("limitSelect").value);
+      currentOffset += limit;
+      loadEverything();
+    }
+
+    function scheduleAutoRefresh(hasPendingJobs) {
+      if (autoRefreshTimer) {
+        clearTimeout(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+
+      if (hasPendingJobs) {
+        autoRefreshTimer = setTimeout(loadEverything, 3000);
+      }
+    }
+
     async function loadJobs() {
       const params = buildJobQueryParams();
 
       const data = await requestJson("/jobs?" + params.toString());
+      const limit = Number(data.limit);
+      const startItem = data.total === 0 ? 0 : data.offset + 1;
+      const endItem = Math.min(data.offset + data.items.length, data.total);
+      const hasPendingJobs = data.items.some(job => job.status === "pending");
 
       const rows = data.items.map(job => `
         <tr>
@@ -230,8 +278,19 @@
         </tr>
       `).join("");
 
+      document.getElementById("jobsSummary").innerHTML = `
+        <p>
+          Total matching jobs: ${data.total}
+          | Showing: ${startItem}-${endItem}
+          | Offset: ${data.offset}
+          ${hasPendingJobs ? "| Auto-refreshing pending jobs..." : ""}
+        </p>
+      `;
+
+      document.getElementById("prevButton").disabled = data.offset === 0;
+      document.getElementById("nextButton").disabled = data.offset + limit >= data.total;
+
       document.getElementById("jobsTable").innerHTML = `
-        <p>Total matching jobs: ${data.total}</p>
         <table>
           <thead>
             <tr>
@@ -248,6 +307,8 @@
           <tbody>${rows}</tbody>
         </table>
       `;
+
+      scheduleAutoRefresh(hasPendingJobs);
     }
 
     function downloadCsv() {
