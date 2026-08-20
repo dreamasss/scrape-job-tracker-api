@@ -482,7 +482,7 @@ make test
 Current expected result:
 
 ```text
-21 passed
+44 passed
 ```
 
 The tests use an isolated in-memory SQLite database and mocked HTML fetching, so they do not depend on the real internet.

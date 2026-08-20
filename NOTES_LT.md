@@ -1525,3 +1525,40 @@ API greičiau atsako į POST requestą.
 Job turi aiškų status lifecycle.
 Projektas labiau primena realų production job processing flow.
 ```
+
+---
+
+## Update — Production v2
+
+Senas Render servisas `scrape-job-tracker-api` užstrigo su deploy problema, todėl sukurtas naujas Render Web Service:
+
+```text
+https://scrape-job-tracker-api-v2.onrender.com
+```
+
+Patikrinta live:
+
+```text
+GET /health/db -> ok
+make smoke -> Smoke test passed
+GET /jobs/stats -> veikia
+GET /jobs?sort_by=id&sort_order=asc&url_contains=example -> veikia
+DELETE /jobs/{job_id} -> veikia
+URL safety localhost test -> veikia
+```
+
+Dabartinis projekto statusas:
+
+```text
+44 passed
+Live API veikia per scrape-job-tracker-api-v2
+PostgreSQL DB veikia
+Background jobs veikia
+Stats, retry, delete, sorting, url_contains ir URL safety veikia
+```
+
+Trumpas apibūdinimas:
+
+```text
+Tai FastAPI web scraping backend API. Vartotojas paduoda URL, API sukuria scrape jobą, backgrounde parsisiunčia ir išparsina puslapį, išsaugo rezultatą PostgreSQL DB ir leidžia jobus listinti, filtruoti, rūšiuoti, retryinti, trinti bei matyti statistiką.
+```
