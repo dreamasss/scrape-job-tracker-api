@@ -131,3 +131,63 @@ def test_create_scrape_job_failed_fetch(client, monkeypatch):
     assert data["title"] is None
     assert data["error_message"] is not None
     assert "Connection failed" in data["error_message"]
+
+
+def test_list_scrape_jobs_uses_limit_and_offset(client, monkeypatch):
+    monkeypatch.setattr("app.routers.jobs.fetch_html", fake_fetch_html_success)
+
+    client.post("/jobs", json={"url": "https://example.com/1"})
+    client.post("/jobs", json={"url": "https://example.com/2"})
+    client.post("/jobs", json={"url": "https://example.com/3"})
+
+    response = client.get("/jobs?limit=1&offset=1")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["id"] == 2
+
+
+def test_list_scrape_jobs_filters_by_success_status(client, monkeypatch):
+    monkeypatch.setattr("app.routers.jobs.fetch_html", fake_fetch_html_success)
+
+    client.post("/jobs", json={"url": "https://example.com"})
+
+    response = client.get("/jobs?status=success")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["status"] == "success"
+
+
+def test_list_scrape_jobs_filters_by_failed_status(client, monkeypatch):
+    monkeypatch.setattr("app.routers.jobs.fetch_html", fake_fetch_html_failure)
+
+    client.post("/jobs", json={"url": "https://example.com"})
+
+    response = client.get("/jobs?status=failed")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["status"] == "failed"
+
+
+def test_list_scrape_jobs_rejects_invalid_status(client):
+    response = client.get("/jobs?status=unknown")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid job status"
+
+
+def test_list_scrape_jobs_rejects_invalid_limit(client):
+    response = client.get("/jobs?limit=0")
+
+    assert response.status_code == 422

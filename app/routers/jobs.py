@@ -1,5 +1,5 @@
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,8 @@ from app.services.fetcher import fetch_html
 from app.services.parser import parse_html
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+VALID_JOB_STATUSES = {"pending", "success", "failed"}
 
 
 @router.post("", response_model=ScrapeJobRead, status_code=status.HTTP_201_CREATED)
@@ -40,9 +42,22 @@ async def create_scrape_job(data: ScrapeJobCreate, db: Session = Depends(get_db)
 
 
 @router.get("", response_model=list[ScrapeJobRead])
-def list_scrape_jobs(db: Session = Depends(get_db)):
+def list_scrape_jobs(
+    status_filter: str | None = Query(default=None, alias="status"),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+):
+    query = select(ScrapeJob)
+
+    if status_filter is not None:
+        if status_filter not in VALID_JOB_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid job status")
+
+        query = query.where(ScrapeJob.status == status_filter)
+
     jobs = db.execute(
-        select(ScrapeJob).order_by(ScrapeJob.id.desc())
+        query.order_by(ScrapeJob.id.desc()).limit(limit).offset(offset)
     ).scalars().all()
 
     return jobs
