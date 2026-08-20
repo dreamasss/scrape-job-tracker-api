@@ -159,7 +159,7 @@ Example response:
 POST /jobs
 ```
 
-Fetches a URL, parses the page, saves the result in the database, and returns the created scrape job.
+Creates a scrape job with `pending` status, returns it immediately, and processes the URL in a FastAPI background task. When processing finishes, the job is updated to `success` or `failed`.
 
 Example request:
 

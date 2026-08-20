@@ -1498,3 +1498,30 @@ Render = live deploy
 Smoke test = realiai paleisto API patikra
 Pytest = konkrečios logikos testai
 ```
+
+---
+
+## Update — Background scrape jobs
+
+`POST /jobs` dabar sukuria scrape job su `status=pending` ir iškart grąžina `201 Created`.
+
+Scraping vyksta FastAPI `BackgroundTasks` fone.
+
+Flow:
+
+```text
+POST /jobs
+-> sukuria job DB su status=pending
+-> iškart grąžina response
+-> background task fetchina/paršina URL
+-> job tampa success arba failed
+-> rezultatą galima tikrinti per GET /jobs/{job_id}
+```
+
+Kodėl tai geriau:
+
+```text
+API greičiau atsako į POST requestą.
+Job turi aiškų status lifecycle.
+Projektas labiau primena realų production job processing flow.
+```
