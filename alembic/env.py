@@ -1,18 +1,14 @@
-import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
 import app.models  # noqa: F401
 from alembic import context
-from app.database import Base
+from app.database import DATABASE_URL, Base
 
 config = context.config
 
-config.set_main_option(
-    "sqlalchemy.url",
-    os.getenv("DATABASE_URL", "sqlite:///./scrape_jobs.db"),
-)
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
