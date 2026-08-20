@@ -1,4 +1,6 @@
+import csv
 from collections.abc import Callable
+from io import StringIO
 from typing import Annotated
 
 import httpx
@@ -175,6 +177,75 @@ def list_scrape_jobs(
         "sort_order": sort_order,
         "items": jobs,
     }
+
+
+@router.get("/export.csv")
+def export_scrape_jobs(
+    db: DBSession,
+    status: StatusFilter = None,
+    url_contains: UrlContainsFilter = None,
+    sort_by: SortByQuery = "id",
+    sort_order: SortOrderQuery = "desc",
+) -> Response:
+    query = select(ScrapeJob)
+
+    if status is not None:
+        if status not in VALID_JOB_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid job status")
+
+        query = query.where(ScrapeJob.status == status)
+
+    if url_contains is not None:
+        query = query.where(ScrapeJob.url.ilike(f"%{url_contains}%"))
+
+    if sort_by not in VALID_SORT_FIELDS:
+        raise HTTPException(status_code=400, detail="Invalid sort field")
+
+    if sort_order not in VALID_SORT_ORDERS:
+        raise HTTPException(status_code=400, detail="Invalid sort order")
+
+    sort_column = VALID_SORT_FIELDS[sort_by]
+    order_expression = sort_column.asc() if sort_order == "asc" else sort_column.desc()
+
+    jobs = db.execute(query.order_by(order_expression)).scalars().all()
+
+    output = StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(
+        [
+            "id",
+            "url",
+            "status",
+            "title",
+            "h1",
+            "meta_description",
+            "links_count",
+            "error_message",
+            "created_at",
+        ]
+    )
+
+    for job in jobs:
+        writer.writerow(
+            [
+                job.id,
+                job.url,
+                job.status,
+                job.title,
+                job.h1,
+                job.meta_description,
+                job.links_count,
+                job.error_message,
+                job.created_at.isoformat(),
+            ]
+        )
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=scrape_jobs.csv"},
+    )
 
 
 @router.get("/stats", response_model=ScrapeJobStatsResponse)

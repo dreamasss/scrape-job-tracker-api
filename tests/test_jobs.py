@@ -422,3 +422,40 @@ def test_retry_scrape_job_accepts_admin_api_key_when_configured(client, monkeypa
 
     assert response.status_code == 202
     assert response.json()["status"] == "pending"
+
+
+def test_export_scrape_jobs_as_csv(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+
+    response = client.get("/jobs/export.csv")
+
+    assert response.status_code == 200
+    assert "text/csv" in response.headers["content-type"]
+    assert (
+        "attachment; filename=scrape_jobs.csv"
+        in response.headers["content-disposition"]
+    )
+    assert (
+        "id,url,status,title,h1,meta_description,links_count,error_message,created_at"
+        in response.text
+    )
+    assert "https://example.com/" in response.text
+    assert "success" in response.text
+
+
+def test_export_scrape_jobs_filters_by_url_contains(client, monkeypatch):
+    create_job(client, monkeypatch, "https://example.com")
+    create_job(client, monkeypatch, "https://example.org")
+
+    response = client.get("/jobs/export.csv?url_contains=org")
+
+    assert response.status_code == 200
+    assert "https://example.org/" in response.text
+    assert "https://example.com/" not in response.text
+
+
+def test_export_scrape_jobs_rejects_invalid_sort_field(client):
+    response = client.get("/jobs/export.csv?sort_by=bad")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid sort field"}

@@ -119,6 +119,7 @@
     </select>
 
     <button onclick="loadJobs()">Apply</button>
+    <button class="secondary" onclick="downloadCsv()">Download CSV</button>
 
     <div id="jobsTable"></div>
   </div>
@@ -192,7 +193,7 @@
       `;
     }
 
-    async function loadJobs() {
+    function buildJobQueryParams() {
       const params = new URLSearchParams();
       params.set("limit", "50");
       params.set("offset", "0");
@@ -204,6 +205,12 @@
 
       if (status) params.set("status", status);
       if (urlContains) params.set("url_contains", urlContains);
+
+      return params;
+    }
+
+    async function loadJobs() {
+      const params = buildJobQueryParams();
 
       const data = await requestJson("/jobs?" + params.toString());
 
@@ -241,6 +248,11 @@
           <tbody>${rows}</tbody>
         </table>
       `;
+    }
+
+    function downloadCsv() {
+      const params = buildJobQueryParams();
+      window.location.href = "/jobs/export.csv?" + params.toString();
     }
 
     async function retryJob(id) {
