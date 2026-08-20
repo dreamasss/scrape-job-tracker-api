@@ -1,9 +1,10 @@
+from collections.abc import Callable
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.database import get_db
 from app.models import ScrapeJob
@@ -13,55 +14,95 @@ from app.services.parser import parse_html
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-VALID_JOB_STATUSES = {"pending", "success", "failed"}
-
 DBSession = Annotated[Session, Depends(get_db)]
-StatusFilter = Annotated[str | None, Query(alias="status")]
 LimitQuery = Annotated[int, Query(ge=1, le=100)]
 OffsetQuery = Annotated[int, Query(ge=0)]
+StatusFilter = Annotated[str | None, Query()]
+
+SessionFactory = Callable[[], Session]
+
+VALID_JOB_STATUSES = {"pending", "success", "failed"}
 
 
-@router.post("", response_model=ScrapeJobRead, status_code=status.HTTP_201_CREATED)
-async def create_scrape_job(data: ScrapeJobCreate, db: DBSession):
-    job = ScrapeJob(url=str(data.url), status="pending")
+async def process_scrape_job(
+    job_id: int,
+    url: str,
+    session_factory: SessionFactory,
+) -> None:
+    db = session_factory()
+
+    try:
+        job = db.get(ScrapeJob, job_id)
+
+        if job is None:
+            return
+
+        try:
+            html = await fetch_html(url)
+            parsed = parse_html(html)
+        except httpx.HTTPError as exc:
+            job.status = "failed"
+            job.error_message = str(exc)
+        else:
+            job.status = "success"
+            job.title = parsed["title"]
+            job.h1 = parsed["h1"]
+            job.meta_description = parsed["meta_description"]
+            job.links_count = parsed["links_count"]
+            job.error_message = None
+
+        db.commit()
+    finally:
+        db.close()
+
+
+@router.post("", response_model=ScrapeJobRead)
+def create_scrape_job(
+    job_in: ScrapeJobCreate,
+    background_tasks: BackgroundTasks,
+    db: DBSession,
+) -> ScrapeJobRead:
+    job = ScrapeJob(
+        url=str(job_in.url),
+        status="pending",
+    )
+
     db.add(job)
     db.commit()
     db.refresh(job)
 
-    try:
-        html = await fetch_html(str(data.url))
-        parsed = parse_html(html)
+    job_response = ScrapeJobRead.model_validate(job)
 
-        job.status = "success"
-        job.title = parsed["title"]
-        job.h1 = parsed["h1"]
-        job.meta_description = parsed["meta_description"]
-        job.links_count = parsed["links_count"]
-        job.error_message = None
-    except httpx.HTTPError as error:
-        job.status = "failed"
-        job.error_message = str(error)
+    session_factory = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=db.get_bind(),
+    )
 
-    db.commit()
-    db.refresh(job)
+    background_tasks.add_task(
+        process_scrape_job,
+        job.id,
+        job.url,
+        session_factory,
+    )
 
-    return job
+    return job_response
 
 
 @router.get("", response_model=ScrapeJobListResponse)
 def list_scrape_jobs(
     db: DBSession,
-    status_filter: StatusFilter = None,
     limit: LimitQuery = 50,
     offset: OffsetQuery = 0,
-):
+    status: StatusFilter = None,
+) -> dict[str, int | list[ScrapeJob]]:
     query = select(ScrapeJob)
 
-    if status_filter is not None:
-        if status_filter not in VALID_JOB_STATUSES:
+    if status is not None:
+        if status not in VALID_JOB_STATUSES:
             raise HTTPException(status_code=400, detail="Invalid job status")
 
-        query = query.where(ScrapeJob.status == status_filter)
+        query = query.where(ScrapeJob.status == status)
 
     total = db.execute(select(func.count()).select_from(query.subquery())).scalar_one()
 
@@ -80,7 +121,10 @@ def list_scrape_jobs(
 
 
 @router.get("/{job_id}", response_model=ScrapeJobRead)
-def get_scrape_job(job_id: int, db: DBSession):
+def get_scrape_job(
+    job_id: int,
+    db: DBSession,
+) -> ScrapeJob:
     job = db.get(ScrapeJob, job_id)
 
     if job is None:
