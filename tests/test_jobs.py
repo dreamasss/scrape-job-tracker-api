@@ -232,3 +232,24 @@ def test_get_scrape_job_stats_empty(client):
         "success": 0,
         "failed": 0,
     }
+
+
+def test_delete_scrape_job(client, monkeypatch):
+    job = create_job(client, monkeypatch)
+
+    response = client.delete(f"/jobs/{job['id']}")
+
+    assert response.status_code == 204
+    assert response.content == b""
+
+    response = client.get(f"/jobs/{job['id']}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Scrape job not found"}
+
+
+def test_delete_scrape_job_returns_404_for_unknown_id(client):
+    response = client.delete("/jobs/999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Scrape job not found"}

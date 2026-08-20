@@ -2,7 +2,15 @@ from collections.abc import Callable
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -156,3 +164,19 @@ def get_scrape_job(
         raise HTTPException(status_code=404, detail="Scrape job not found")
 
     return job
+
+
+@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_scrape_job(
+    job_id: int,
+    db: DBSession,
+) -> Response:
+    job = db.get(ScrapeJob, job_id)
+
+    if job is None:
+        raise HTTPException(status_code=404, detail="Scrape job not found")
+
+    db.delete(job)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
