@@ -8,6 +8,7 @@ This project is part of my backend learning portfolio. The goal is to build a pr
 
 * FastAPI application
 * Health check endpoint
+* Database health check endpoint
 * URL preview scraping endpoint
 * Database-backed scrape job endpoints
 * SQLite support for local development
@@ -37,6 +38,7 @@ This project is part of my backend learning portfolio. The goal is to build a pr
 * GitHub Actions CI
 * Dockerfile
 * Docker Compose setup with API + PostgreSQL
+* Makefile for common development commands
 
 ## Tech Stack
 
@@ -53,6 +55,7 @@ This project is part of my backend learning portfolio. The goal is to build a pr
 * Docker
 * Docker Compose
 * GitHub Actions
+* Make
 
 ## API Endpoints
 
@@ -70,11 +73,30 @@ Returns basic API information.
 GET /health
 ```
 
+Checks if the API is running.
+
 Example response:
 
 ```json
 {
   "status": "ok"
+}
+```
+
+### Database Health Check
+
+```http
+GET /health/db
+```
+
+Checks if the API can connect to the database.
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "database": "ok"
 }
 ```
 
@@ -264,9 +286,21 @@ Open Swagger docs:
 http://localhost:8000/docs
 ```
 
+Check API health:
+
+```text
+http://localhost:8000/health
+```
+
+Check database health:
+
+```text
+http://localhost:8000/health/db
+```
+
 Stop the containers:
 
-```bash
+```text
 Ctrl + C
 ```
 
@@ -282,29 +316,109 @@ Stop detached containers:
 docker compose down
 ```
 
+## Makefile Commands
+
+Install dependencies:
+
+```bash
+make install
+```
+
+Run tests:
+
+```bash
+make test
+```
+
+Run Ruff linting:
+
+```bash
+make lint
+```
+
+Format code:
+
+```bash
+make format
+```
+
+Check formatting:
+
+```bash
+make format-check
+```
+
+Run linting, formatting check, and tests:
+
+```bash
+make check
+```
+
+Run the API locally:
+
+```bash
+make run
+```
+
+Run with Docker Compose:
+
+```bash
+make docker-up
+```
+
+Stop Docker containers:
+
+```bash
+make docker-down
+```
+
+Follow API container logs:
+
+```bash
+make docker-logs
+```
+
 ## Running Tests
 
 ```bash
 python -m pytest -q
 ```
 
+Or:
+
+```bash
+make test
+```
+
 Current expected result:
 
 ```text
-14 passed
+15 passed
 ```
 
 The tests use an isolated in-memory SQLite database and mocked HTML fetching, so they do not depend on the real internet.
 
 ## Code Quality
 
-Run Ruff linting:
+Run all checks:
+
+```bash
+make check
+```
+
+This runs:
+
+* Ruff linting
+* Ruff formatting check
+* pytest test suite
+
+Run Ruff linting manually:
 
 ```bash
 ruff check .
 ```
 
-Run Ruff formatting check:
+Run Ruff formatting check manually:
 
 ```bash
 ruff format --check .
@@ -339,11 +453,14 @@ Current version includes:
 * fetcher service
 * SQLite local development setup
 * Docker Compose PostgreSQL setup
+* API health check
+* database health check
 * pagination metadata for job listing
 * job status filtering
 * automated test suite
 * Ruff code quality checks
 * GitHub Actions CI
+* Makefile development commands
 
 Planned next steps:
 
@@ -374,6 +491,7 @@ This project is designed to practice:
 * Using PostgreSQL in a containerized environment
 * Adding linting and formatting checks
 * Setting up GitHub Actions CI
+* Creating simple development workflow commands with Makefile
 * Preparing a project for deployment and cloud infrastructure
 
 ## Author
