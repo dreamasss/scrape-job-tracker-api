@@ -1,6 +1,9 @@
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -15,10 +18,19 @@ app = FastAPI(
     version="0.2.0",
 )
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
 app.include_router(scrape_router)
 app.include_router(jobs_router)
 
 DBSession = Annotated[Session, Depends(get_db)]
+
+
+@app.get("/demo", include_in_schema=False)
+def demo_page():
+    return FileResponse(STATIC_DIR / "demo.html")
 
 
 @app.get("/")

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scrape Job Tracker Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 16px;
+      background: #f7f7f8;
+      color: #222;
+    }
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 4px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    input {
+      min-width: 320px;
+    }
+    button {
+      cursor: pointer;
+      background: #222;
+      color: white;
+      border: none;
+    }
+    button.secondary {
+      background: #666;
+    }
+    button.danger {
+      background: #b42318;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      border-bottom: 1px solid #eee;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #fafafa;
+    }
+    .status {
+      font-weight: bold;
+    }
+    .success {
+      color: #087443;
+    }
+    .failed {
+      color: #b42318;
+    }
+    .pending {
+      color: #9a6700;
+    }
+    pre {
+      white-space: pre-wrap;
+      background: #111;
+      color: #eee;
+      padding: 12px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scrape Job Tracker Demo</h1>
+  <p>Submit a URL, create a background scrape job, and view saved results.</p>
+
+  <div class="card">
+    <h2>Create scrape job</h2>
+    <input id="urlInput" value="https://example.com" placeholder="https://example.com">
+    <button onclick="createJob()">Create Job</button>
+    <button class="secondary" onclick="loadEverything()">Refresh</button>
+    <pre id="message">Ready.</pre>
+  </div>
+
+  <div class="card">
+    <h2>Stats</h2>
+    <div id="stats">Loading...</div>
+  </div>
+
+  <div class="card">
+    <h2>Jobs</h2>
+    <label>Status:</label>
+    <select id="statusFilter">
+      <option value="">all</option>
+      <option value="pending">pending</option>
+      <option value="success">success</option>
+      <option value="failed">failed</option>
+    </select>
+
+    <label>URL contains:</label>
+    <input id="urlContains" placeholder="example">
+
+    <label>Sort:</label>
+    <select id="sortBy">
+      <option value="id">id</option>
+      <option value="created_at">created_at</option>
+    </select>
+
+    <select id="sortOrder">
+      <option value="desc">desc</option>
+      <option value="asc">asc</option>
+    </select>
+
+    <button onclick="loadJobs()">Apply</button>
+
+    <div id="jobsTable"></div>
+  </div>
+
+  <script>
+    function showMessage(value) {
+      document.getElementById("message").textContent =
+        typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function requestJson(path, options = {}) {
+      const response = await fetch(path, options);
+      const text = await response.text();
+      let data = null;
+
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(typeof data === "string" ? data : JSON.stringify(data, null, 2));
+      }
+
+      return data;
+    }
+
+    async function createJob() {
+      try {
+        const url = document.getElementById("urlInput").value;
+
+        const job = await requestJson("/jobs", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({url})
+        });
+
+        showMessage(job);
+        await loadEverything();
+
+        setTimeout(loadEverything, 2000);
+      } catch (error) {
+        showMessage("Error: " + error.message);
+      }
+    }
+
+    async function loadStats() {
+      const stats = await requestJson("/jobs/stats");
+      document.getElementById("stats").innerHTML = `
+        <strong>Total:</strong> ${stats.total}
+        | <strong>Pending:</strong> ${stats.pending}
+        | <strong>Success:</strong> ${stats.success}
+        | <strong>Failed:</strong> ${stats.failed}
+      `;
+    }
+
+    async function loadJobs() {
+      const params = new URLSearchParams();
+      params.set("limit", "50");
+      params.set("offset", "0");
+      params.set("sort_by", document.getElementById("sortBy").value);
+      params.set("sort_order", document.getElementById("sortOrder").value);
+
+      const status = document.getElementById("statusFilter").value;
+      const urlContains = document.getElementById("urlContains").value;
+
+      if (status) params.set("status", status);
+      if (urlContains) params.set("url_contains", urlContains);
+
+      const data = await requestJson("/jobs?" + params.toString());
+
+      const rows = data.items.map(job => `
+        <tr>
+          <td>${job.id}</td>
+          <td class="status ${escapeHtml(job.status)}">${escapeHtml(job.status)}</td>
+          <td>${escapeHtml(job.url)}</td>
+          <td>${escapeHtml(job.title)}</td>
+          <td>${escapeHtml(job.h1)}</td>
+          <td>${job.links_count ?? ""}</td>
+          <td>${escapeHtml(job.error_message)}</td>
+          <td>
+            <button class="secondary" onclick="retryJob(${job.id})">Retry</button>
+            <button class="danger" onclick="deleteJob(${job.id})">Delete</button>
+          </td>
+        </tr>
+      `).join("");
+
+      document.getElementById("jobsTable").innerHTML = `
+        <p>Total matching jobs: ${data.total}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Status</th>
+              <th>URL</th>
+              <th>Title</th>
+              <th>H1</th>
+              <th>Links</th>
+              <th>Error</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    async function retryJob(id) {
+      try {
+        const job = await requestJson(`/jobs/${id}/retry`, {method: "POST"});
+        showMessage(job);
+        await loadEverything();
+        setTimeout(loadEverything, 2000);
+      } catch (error) {
+        showMessage("Error: " + error.message);
+      }
+    }
+
+    async function deleteJob(id) {
+      try {
+        await fetch(`/jobs/${id}`, {method: "DELETE"});
+        showMessage(`Deleted job ${id}`);
+        await loadEverything();
+      } catch (error) {
+        showMessage("Error: " + error.message);
+      }
+    }
+
+    async function loadEverything() {
+      try {
+        await loadStats();
+        await loadJobs();
+      } catch (error) {
+        showMessage("Error: " + error.message);
+      }
+    }
+
+    loadEverything();
+  </script>
+</body>
+</html>
