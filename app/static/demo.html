@@ -85,6 +85,7 @@
     <input id="urlInput" value="https://example.com" placeholder="https://example.com">
     <button onclick="createJob()">Create Job</button>
     <button class="secondary" onclick="loadEverything()">Refresh</button>
+    <p><input id="apiKeyInput" type="password" placeholder="Admin API key for retry/delete"></p>
     <pre id="message">Ready.</pre>
   </div>
 
@@ -135,6 +136,11 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function adminHeaders() {
+      const apiKey = document.getElementById("apiKeyInput").value;
+      return apiKey ? {"X-API-Key": apiKey} : {};
     }
 
     async function requestJson(path, options = {}) {
@@ -239,7 +245,10 @@
 
     async function retryJob(id) {
       try {
-        const job = await requestJson(`/jobs/${id}/retry`, {method: "POST"});
+        const job = await requestJson(`/jobs/${id}/retry`, {
+          method: "POST",
+          headers: adminHeaders()
+        });
         showMessage(job);
         await loadEverything();
         setTimeout(loadEverything, 2000);
@@ -250,7 +259,10 @@
 
     async function deleteJob(id) {
       try {
-        await fetch(`/jobs/${id}`, {method: "DELETE"});
+        await requestJson(`/jobs/${id}`, {
+          method: "DELETE",
+          headers: adminHeaders()
+        });
         showMessage(`Deleted job ${id}`);
         await loadEverything();
       } catch (error) {

@@ -365,3 +365,60 @@ def test_list_scrape_jobs_filters_by_status_and_url_contains(client, monkeypatch
     assert data["total"] == 1
     assert data["items"][0]["status"] == "failed"
     assert data["items"][0]["url"] == "https://broken.example.com/"
+
+
+def test_delete_scrape_job_requires_admin_api_key_when_configured(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_API_KEY", "secret-key")
+    job = create_job(client, monkeypatch)
+
+    response = client.delete(f"/jobs/{job['id']}")
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or missing API key"}
+
+    response = client.get(f"/jobs/{job['id']}")
+
+    assert response.status_code == 200
+
+
+def test_delete_scrape_job_accepts_admin_api_key_when_configured(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_API_KEY", "secret-key")
+    job = create_job(client, monkeypatch)
+
+    response = client.delete(
+        f"/jobs/{job['id']}",
+        headers={"X-API-Key": "secret-key"},
+    )
+
+    assert response.status_code == 204
+
+
+def test_retry_scrape_job_requires_admin_api_key_when_configured(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_API_KEY", "secret-key")
+    mock_failed_fetch(monkeypatch)
+
+    response = client.post("/jobs", json={"url": "https://broken.example.com"})
+    failed_job = client.get(f"/jobs/{response.json()['id']}").json()
+
+    response = client.post(f"/jobs/{failed_job['id']}/retry")
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or missing API key"}
+
+
+def test_retry_scrape_job_accepts_admin_api_key_when_configured(client, monkeypatch):
+    monkeypatch.setenv("ADMIN_API_KEY", "secret-key")
+    mock_failed_fetch(monkeypatch)
+
+    response = client.post("/jobs", json={"url": "https://broken.example.com"})
+    failed_job = client.get(f"/jobs/{response.json()['id']}").json()
+
+    mock_successful_fetch(monkeypatch)
+
+    response = client.post(
+        f"/jobs/{failed_job['id']}/retry",
+        headers={"X-API-Key": "secret-key"},
+    )
+
+    assert response.status_code == 202
+    assert response.json()["status"] == "pending"

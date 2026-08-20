@@ -23,3 +23,10 @@ def get_fetch_timeout_seconds() -> float:
 
 def get_user_agent() -> str:
     return os.getenv("USER_AGENT", DEFAULT_USER_AGENT)
+
+
+DEFAULT_ADMIN_API_KEY = ""
+
+
+def get_admin_api_key() -> str:
+    return os.getenv("ADMIN_API_KEY", DEFAULT_ADMIN_API_KEY).strip()

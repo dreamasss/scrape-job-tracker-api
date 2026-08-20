@@ -6,6 +6,7 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
+    Header,
     HTTPException,
     Query,
     Response,
@@ -14,6 +15,7 @@ from fastapi import (
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.config import get_admin_api_key
 from app.database import get_db
 from app.models import ScrapeJob
 from app.schemas import (
@@ -35,6 +37,7 @@ StatusFilter = Annotated[str | None, Query()]
 SortByQuery = Annotated[str, Query()]
 SortOrderQuery = Annotated[str, Query()]
 UrlContainsFilter = Annotated[str | None, Query()]
+AdminApiKeyHeader = Annotated[str | None, Header(alias="X-API-Key")]
 
 SessionFactory = Callable[[], Session]
 
@@ -44,6 +47,19 @@ VALID_SORT_FIELDS = {
     "created_at": ScrapeJob.created_at,
 }
 VALID_SORT_ORDERS = {"asc", "desc"}
+
+
+def require_admin_api_key(x_api_key: AdminApiKeyHeader = None) -> None:
+    expected_api_key = get_admin_api_key()
+
+    if not expected_api_key:
+        return
+
+    if x_api_key != expected_api_key:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+
+AdminAuth = Annotated[None, Depends(require_admin_api_key)]
 
 
 async def process_scrape_job(
@@ -190,6 +206,7 @@ def retry_scrape_job(
     job_id: int,
     background_tasks: BackgroundTasks,
     db: DBSession,
+    _admin_auth: AdminAuth,
 ) -> ScrapeJobRead:
     job = db.get(ScrapeJob, job_id)
 
@@ -241,6 +258,7 @@ def get_scrape_job(
 def delete_scrape_job(
     job_id: int,
     db: DBSession,
+    _admin_auth: AdminAuth,
 ) -> Response:
     job = db.get(ScrapeJob, job_id)
 

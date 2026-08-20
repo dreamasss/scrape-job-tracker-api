@@ -1562,3 +1562,32 @@ Trumpas apibūdinimas:
 ```text
 Tai FastAPI web scraping backend API. Vartotojas paduoda URL, API sukuria scrape jobą, backgrounde parsisiunčia ir išparsina puslapį, išsaugo rezultatą PostgreSQL DB ir leidžia jobus listinti, filtruoti, rūšiuoti, retryinti, trinti bei matyti statistiką.
 ```
+
+---
+
+## Update — Admin API Key
+
+Pridėta admin API key apsauga pavojingesniems endpointams:
+
+```text
+POST /jobs/{job_id}/retry
+DELETE /jobs/{job_id}
+```
+
+Jei `ADMIN_API_KEY` env var nustatytas, šiems endpointams reikia headerio:
+
+```text
+X-API-Key: tavo-secret-key
+```
+
+Kodėl tai naudinga:
+
+```text
+Live demo gali būti viešas, bet bet kas negalės trinti ar retryinti jobų be rakto.
+```
+
+Dabartinis testų rezultatas:
+
+```text
+49 passed
+```

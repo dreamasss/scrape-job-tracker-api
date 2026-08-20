@@ -646,3 +646,25 @@ This project is designed to practice:
 ## Author
 
 Deividas Gagiskis
+
+## Admin API Key
+
+Retry and delete endpoints can be protected with an admin API key:
+
+```text
+ADMIN_API_KEY=your-secret-key
+```
+
+When `ADMIN_API_KEY` is configured, these endpoints require the `X-API-Key` header:
+
+```text
+POST /jobs/{job_id}/retry
+DELETE /jobs/{job_id}
+```
+
+Example:
+
+```bash
+curl -X DELETE https://scrape-job-tracker-api-v2.onrender.com/jobs/1 \
+  -H "X-API-Key: your-secret-key"
+```
