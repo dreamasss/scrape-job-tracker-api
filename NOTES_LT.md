@@ -1700,3 +1700,12 @@ Jei limitas viršytas, API grąžina:
 ```
 
 Svarbu: tai tinka demo/single-instance projektui. Rimtam multi-instance production geriau būtų Redis-based rate limiteris.
+
+Rate limiteris grąžina headerius:
+
+```text
+X-RateLimit-Limit
+X-RateLimit-Remaining
+X-RateLimit-Reset
+Retry-After
+```

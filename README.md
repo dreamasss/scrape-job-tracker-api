@@ -769,3 +769,12 @@ The live demo page provides a simple browser UI for creating scrape jobs, filter
 <img src="docs/assets/swagger.png" alt="Swagger API docs" width="900">
 
 </details>
+
+Rate limit responses include useful headers:
+
+```text
+X-RateLimit-Limit
+X-RateLimit-Remaining
+X-RateLimit-Reset
+Retry-After
+```
