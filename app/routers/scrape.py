@@ -4,6 +4,7 @@ from pydantic import BaseModel, HttpUrl
 
 from app.services.fetcher import fetch_html
 from app.services.parser import parse_html
+from app.services.rate_limiter import RateLimit
 from app.services.url_safety import validate_public_url
 
 router = APIRouter(prefix="/scrape", tags=["scrape"])
@@ -22,7 +23,10 @@ class ScrapePreviewResponse(BaseModel):
 
 
 @router.post("/preview", response_model=ScrapePreviewResponse)
-async def scrape_preview(request: ScrapePreviewRequest) -> ScrapePreviewResponse:
+async def scrape_preview(
+    request: ScrapePreviewRequest,
+    _rate_limit: RateLimit,
+) -> ScrapePreviewResponse:
     url = str(request.url)
 
     validate_public_url(url)

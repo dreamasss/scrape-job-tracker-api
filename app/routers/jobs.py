@@ -29,6 +29,7 @@ from app.schemas import (
 )
 from app.services.fetcher import fetch_html
 from app.services.parser import parse_html
+from app.services.rate_limiter import RateLimit
 from app.services.url_safety import validate_public_url
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -155,6 +156,7 @@ def create_scrape_job(
     job_in: ScrapeJobCreate,
     background_tasks: BackgroundTasks,
     db: DBSession,
+    _rate_limit: RateLimit,
 ) -> ScrapeJobRead:
     validate_public_url(str(job_in.url))
 

@@ -41,3 +41,10 @@ def client():
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def clear_rate_limiter_state():
+    from app.services.rate_limiter import _requests
+
+    _requests.clear()
