@@ -35,14 +35,34 @@ from app.services.url_safety import validate_public_url
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 DBSession = Annotated[Session, Depends(get_db)]
-LimitQuery = Annotated[int, Query(ge=1, le=100)]
-OffsetQuery = Annotated[int, Query(ge=0)]
-StatusFilter = Annotated[str | None, Query()]
-SortByQuery = Annotated[str, Query()]
-SortOrderQuery = Annotated[str, Query()]
-UrlContainsFilter = Annotated[str | None, Query()]
-CreatedFromFilter = Annotated[str | None, Query()]
-CreatedToFilter = Annotated[str | None, Query()]
+LimitQuery = Annotated[
+    int, Query(ge=1, le=100, description="Maximum number of jobs to return.")
+]
+OffsetQuery = Annotated[int, Query(ge=0, description="Number of jobs to skip.")]
+StatusFilter = Annotated[
+    str | None, Query(description="Filter by job status: pending, success, or failed.")
+]
+SortByQuery = Annotated[
+    str, Query(description="Sort field. Supported values: id, created_at.")
+]
+SortOrderQuery = Annotated[
+    str, Query(description="Sort order. Supported values: asc, desc.")
+]
+UrlContainsFilter = Annotated[
+    str | None, Query(description="Filter jobs where the URL contains this text.")
+]
+CreatedFromFilter = Annotated[
+    str | None,
+    Query(
+        description="Return jobs created at or after this date/datetime. Example: 2026-08-20."
+    ),
+]
+CreatedToFilter = Annotated[
+    str | None,
+    Query(
+        description="Return jobs created at or before this date/datetime. Date-only values include the full day."
+    ),
+]
 AdminApiKeyHeader = Annotated[str | None, Header(alias="X-API-Key")]
 
 SessionFactory = Callable[[], Session]
@@ -151,7 +171,13 @@ async def process_scrape_job(
         db.close()
 
 
-@router.post("", response_model=ScrapeJobRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ScrapeJobRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create scrape job",
+    description="Create a pending scrape job and process the URL in a background task.",
+)
 def create_scrape_job(
     job_in: ScrapeJobCreate,
     background_tasks: BackgroundTasks,
@@ -187,7 +213,12 @@ def create_scrape_job(
     return job_response
 
 
-@router.get("", response_model=ScrapeJobListResponse)
+@router.get(
+    "",
+    response_model=ScrapeJobListResponse,
+    summary="List scrape jobs",
+    description="List scrape jobs with pagination, status filtering, URL search, date filtering, and sorting.",
+)
 def list_scrape_jobs(
     db: DBSession,
     limit: LimitQuery = 50,
@@ -234,7 +265,11 @@ def list_scrape_jobs(
     }
 
 
-@router.get("/export.csv")
+@router.get(
+    "/export.csv",
+    summary="Export scrape jobs as CSV",
+    description="Export scrape jobs as CSV using the same filters and sorting as the job list endpoint.",
+)
 def export_scrape_jobs(
     db: DBSession,
     status: StatusFilter = None,
@@ -302,7 +337,12 @@ def export_scrape_jobs(
     )
 
 
-@router.get("/stats", response_model=ScrapeJobStatsResponse)
+@router.get(
+    "/stats",
+    response_model=ScrapeJobStatsResponse,
+    summary="Get scrape job stats",
+    description="Return total, pending, success, and failed job counts.",
+)
 def get_scrape_job_stats(db: DBSession) -> dict[str, int]:
     rows = db.execute(
         select(ScrapeJob.status, func.count()).group_by(ScrapeJob.status)
@@ -326,6 +366,8 @@ def get_scrape_job_stats(db: DBSession) -> dict[str, int]:
     "/{job_id}/retry",
     response_model=ScrapeJobRead,
     status_code=status.HTTP_202_ACCEPTED,
+    summary="Retry scrape job",
+    description="Reset an existing job to pending and process it again. Requires X-API-Key when ADMIN_API_KEY is configured.",
 )
 def retry_scrape_job(
     job_id: int,
@@ -366,7 +408,12 @@ def retry_scrape_job(
     return job_response
 
 
-@router.get("/{job_id}", response_model=ScrapeJobRead)
+@router.get(
+    "/{job_id}",
+    response_model=ScrapeJobRead,
+    summary="Get scrape job details",
+    description="Return one scrape job by ID.",
+)
 def get_scrape_job(
     job_id: int,
     db: DBSession,
@@ -379,7 +426,12 @@ def get_scrape_job(
     return job
 
 
-@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{job_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete scrape job",
+    description="Delete one scrape job by ID. Requires X-API-Key when ADMIN_API_KEY is configured.",
+)
 def delete_scrape_job(
     job_id: int,
     db: DBSession,
