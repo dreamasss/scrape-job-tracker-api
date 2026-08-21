@@ -759,8 +759,14 @@ Note: this is an in-memory limiter, suitable for a small single-instance demo de
 
 ### Live Demo UI
 
-![Live demo UI](docs/assets/demo.png)
+The live demo page provides a simple browser UI for creating scrape jobs, filtering results, viewing stats, downloading CSV exports, and using admin-only retry/delete actions.
 
-### Swagger API Docs
+<img src="docs/assets/demo.png" alt="Live demo UI" width="900">
 
-![Swagger API docs](docs/assets/swagger.png)
+<details>
+<summary>Swagger API Docs screenshot</summary>
+
+<img src="docs/assets/swagger.png" alt="Swagger API docs" width="900">
+
+</details>
+\n
