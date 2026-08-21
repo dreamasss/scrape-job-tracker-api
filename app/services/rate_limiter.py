@@ -2,7 +2,7 @@ from collections import defaultdict, deque
 from time import monotonic
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, Response
 
 from app.config import get_rate_limit_max_requests, get_rate_limit_window_seconds
 
@@ -23,7 +23,7 @@ def get_client_ip(request: Request) -> str:
     return request.client.host
 
 
-def require_rate_limit(request: Request) -> None:
+def require_rate_limit(request: Request, response: Response) -> None:
     max_requests = get_rate_limit_max_requests()
     window_seconds = get_rate_limit_window_seconds()
 
@@ -38,10 +38,26 @@ def require_rate_limit(request: Request) -> None:
     while request_times and now - request_times[0] > window_seconds:
         request_times.popleft()
 
+    reset_seconds = window_seconds
+    if request_times:
+        reset_seconds = max(0, int(window_seconds - (now - request_times[0])))
+
+    remaining = max(0, max_requests - len(request_times) - 1)
+
+    response.headers["X-RateLimit-Limit"] = str(max_requests)
+    response.headers["X-RateLimit-Remaining"] = str(remaining)
+    response.headers["X-RateLimit-Reset"] = str(reset_seconds)
+
     if len(request_times) >= max_requests:
         raise HTTPException(
             status_code=429,
             detail="Rate limit exceeded. Please try again later.",
+            headers={
+                "Retry-After": str(reset_seconds),
+                "X-RateLimit-Limit": str(max_requests),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(reset_seconds),
+            },
         )
 
     request_times.append(now)
