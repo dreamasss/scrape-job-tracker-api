@@ -1650,3 +1650,53 @@ YYYY-MM-DDTHH:MM:SSZ
 ```
 
 Jei `created_to` paduodamas tik kaip data, API filtruoja iki tos dienos pabaigos.
+
+---
+
+## Update — Demo UI improvements
+
+Demo puslapyje `/demo` pridėti keli UI patobulinimai:
+
+```text
+Job details modal — galima paspausti Details ir pamatyti pilną job JSON
+Pagination controls — Previous / Next
+Limit pasirinkimas — 10 / 25 / 50
+Auto-refresh pending jobams
+Download CSV mygtukas
+Created from / Created to filtrai
+Admin API key laukelis retry/delete veiksmams
+```
+
+---
+
+## Update — Basic rate limiting
+
+Pridėtas paprastas in-memory rate limiteris brangesniems public endpointams:
+
+```text
+POST /jobs
+POST /scrape/preview
+```
+
+Default limitai:
+
+```text
+30 requests per 60 seconds per client IP ir endpointą
+```
+
+Konfigūruojama per env vars:
+
+```text
+RATE_LIMIT_MAX_REQUESTS=30
+RATE_LIMIT_WINDOW_SECONDS=60
+```
+
+Jei limitas viršytas, API grąžina:
+
+```json
+{
+  "detail": "Rate limit exceeded. Please try again later."
+}
+```
+
+Svarbu: tai tinka demo/single-instance projektui. Rimtam multi-instance production geriau būtų Redis-based rate limiteris.

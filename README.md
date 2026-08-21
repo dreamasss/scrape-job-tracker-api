@@ -707,3 +707,50 @@ YYYY-MM-DDTHH:MM:SSZ
 ```
 
 When a date-only value is used for `created_to`, the API treats it as the end of that day.
+
+## Demo UI Features
+
+The `/demo` page includes a small interactive frontend for testing the live API:
+
+```text
+create scrape jobs
+view job stats
+filter and sort jobs
+filter jobs by created date
+open job details in a modal
+retry and delete jobs with admin API key
+download filtered results as CSV
+use pagination controls with selectable limit
+```
+
+## Basic Rate Limiting
+
+Public expensive endpoints are protected by a basic in-memory rate limiter:
+
+```http
+POST /jobs
+POST /scrape/preview
+```
+
+Default limits:
+
+```text
+30 requests per 60 seconds per client IP and endpoint
+```
+
+The limits can be configured with environment variables:
+
+```text
+RATE_LIMIT_MAX_REQUESTS=30
+RATE_LIMIT_WINDOW_SECONDS=60
+```
+
+If the limit is exceeded, the API returns:
+
+```json
+{
+  "detail": "Rate limit exceeded. Please try again later."
+}
+```
+
+Note: this is an in-memory limiter, suitable for a small single-instance demo deployment. A real multi-instance production setup would usually use Redis or another shared store.
