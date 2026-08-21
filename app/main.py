@@ -15,7 +15,7 @@ from app.routers.scrape import router as scrape_router
 app = FastAPI(
     title="Scrape Job Tracker API",
     description="Backend API for submitting URLs, scraping page data, and tracking scrape jobs.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -37,7 +37,7 @@ def demo_page():
 def root():
     return {
         "name": "Scrape Job Tracker API",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "status": "ok",
         "docs": "/docs",
         "health": "/health",
