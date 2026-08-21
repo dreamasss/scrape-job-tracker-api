@@ -754,3 +754,13 @@ If the limit is exceeded, the API returns:
 ```
 
 Note: this is an in-memory limiter, suitable for a small single-instance demo deployment. A real multi-instance production setup would usually use Redis or another shared store.
+
+## Screenshots
+
+### Live Demo UI
+
+![Live demo UI](docs/assets/demo.png)
+
+### Swagger API Docs
+
+![Swagger API docs](docs/assets/swagger.png)
