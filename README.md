@@ -1,5 +1,55 @@
 # Scrape Job Tracker API
 
+A FastAPI backend portfolio project for submitting URLs, processing web scraping jobs in the background, storing results in PostgreSQL, and managing jobs through both API endpoints and a small live demo UI.
+
+## Live Links
+
+- Live API: https://scrape-job-tracker-api-v2.onrender.com
+- Swagger docs: https://scrape-job-tracker-api-v2.onrender.com/docs
+- Demo UI: https://scrape-job-tracker-api-v2.onrender.com/demo
+- Database health check: https://scrape-job-tracker-api-v2.onrender.com/health/db
+
+> The app is deployed on a free Render instance, so the first request after inactivity may take some time to wake up.
+
+## Key Features
+
+- Submit URLs as scrape jobs
+- Background job processing with `pending`, `success`, and `failed` statuses
+- Extract page title, first H1, meta description, and link count
+- Store scrape results in PostgreSQL
+- List jobs with pagination, filtering, sorting, URL search, and created date filters
+- Retry and delete jobs with admin API key protection
+- Export filtered jobs as CSV
+- Basic URL safety checks to block private/local URLs
+- Basic in-memory rate limiting for public expensive endpoints
+- Interactive `/demo` frontend
+- Swagger/OpenAPI documentation
+- Production smoke test for the live Render deployment
+- pytest test suite, Ruff linting/formatting, Docker, Alembic, and GitHub Actions CI
+
+## Tech Stack
+
+- Python
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Alembic
+- Docker
+- pytest
+- Ruff
+- GitHub Actions
+- Render
+- HTML, CSS, JavaScript
+
+## What This Project Demonstrates
+
+This project demonstrates backend API design, database modeling, migrations, background task processing, validation, error handling, API documentation, deployment, CI checks, smoke testing, and basic production-style safeguards such as API key protection, URL safety checks, and rate limiting.
+
+
+---
+
+# Scrape Job Tracker API
+
 A FastAPI backend project for submitting URLs, scraping basic page data, storing scrape jobs, and returning structured results.
 
 This project is part of my backend learning portfolio. The goal is to build a practical API that combines Python backend development with web scraping, databases, testing, Docker, CI/CD, and cloud-ready infrastructure.
