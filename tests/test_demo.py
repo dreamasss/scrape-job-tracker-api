@@ -21,3 +21,14 @@ def test_demo_page_has_pagination_controls():
     assert "Previous" in response.text
     assert "Next" in response.text
     assert "Download CSV" in response.text
+
+
+def test_demo_page_has_job_detail_modal():
+    response = client.get("/demo")
+
+    assert response.status_code == 200
+    assert 'id="jobModal"' in response.text
+    assert 'id="jobDetails"' in response.text
+    assert "Job details" in response.text
+    assert "viewJob" in response.text
+    assert "Details" in response.text
